@@ -1,0 +1,18 @@
+# Settings for the Supabase CLI (`supabase start`, `supabase functions deploy`).
+project_id = "neofit-revenue-system"
+
+[auth]
+# Public sign-up is off: staff and owners are added by the owner, members by invite only.
+enable_signup = false
+site_url = "http://localhost:5173"
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true
+
+[functions.member-access]
+verify_jwt = true
+
+# pg_cron calls this with the service role key, which the function checks itself.
+[functions.send-reminders]
+verify_jwt = false

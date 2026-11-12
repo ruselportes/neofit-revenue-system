@@ -1,0 +1,27 @@
+{
+  "name": "neofit-revenue-system",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Revenue Collection and Monitoring System with AI-Integrated Logbook Scanning for NeoFit Fitness Gym",
+  "workspaces": [
+    "packages/*",
+    "apps/desktop/server",
+    "apps/desktop/renderer",
+    "apps/desktop/electron",
+    "apps/mobile",
+    "supabase"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "desktop": "concurrently -k -n ui,app \"npm run dev -w @neofit/desktop-renderer\" \"npm start -w @neofit/desktop-electron\"",
+    "build:desktop": "npm run bundle -w @neofit/desktop-server && npm run build -w @neofit/desktop-renderer",
+    "pack:desktop": "npm run build:desktop && npm run pack -w @neofit/desktop-electron",
+    "dist:desktop": "npm run build:desktop && npm run dist -w @neofit/desktop-electron"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

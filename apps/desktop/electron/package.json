@@ -1,0 +1,49 @@
+{
+  "name": "@neofit/desktop-electron",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "pack": "node scripts/stage.mjs --dir",
+    "dist": "node scripts/stage.mjs --win",
+    "stage": "node scripts/stage.mjs"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0"
+  },
+  "description": "NeoFit Revenue System desktop app",
+  "author": "NeoFit Revenue System team",
+  "build": {
+    "appId": "com.neofit.revenue",
+    "productName": "NeoFit Revenue System",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "app/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**"
+    ],
+    "npmRebuild": true,
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "electronVersion": "33.4.11"
+  }
+}
