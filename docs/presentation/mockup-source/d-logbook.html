@@ -1,0 +1,47 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="d.css">
+<style>
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;color:#a1a1aa;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 14px;background:#18181b;border-bottom:1px solid #27272a}
+td{padding:9px 14px;border-bottom:1px solid #27272a}
+.badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px}
+.scan{background:rgba(37,99,235,.15);color:#60a5fa}.man{background:rgba(161,161,170,.15);color:#d4d4d8}
+.cal{position:absolute;right:0;top:46px;width:318px;background:#18181b;border:1px solid #27272a;border-radius:12px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.6);z-index:5}
+.wk,.gr{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+.wk div{font-size:11px;color:#a1a1aa;padding-bottom:6px}
+.d{height:38px;border-radius:7px;font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;color:#d4d4d8}
+.d.h{background:rgba(37,99,235,.12)}
+.d.h:after{content:"";position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:#2563eb}
+.d small{font-size:8.5px;color:#60a5fa;font-weight:600}
+.d.sel{background:#2563eb;color:#fff}.d.sel small{color:#fff}
+.d.fut{color:#52525b}
+</style></head>
+<body>
+<!--SIDEBAR:logbook-->
+<main class="main">
+ <div style="max-width:860px;margin:0 auto">
+  <div class="hdr" style="align-items:center;position:relative">
+    <div><h2>Logbook</h2><p>Add and edit manual logbook entries for revenue tracking.</p></div>
+    <div style="display:flex;align-items:center;gap:12px;background:#18181b;border:1px solid #27272a;padding:6px 14px;border-radius:8px">
+      <span style="font-size:12px;color:#a1a1aa;font-weight:600;letter-spacing:.5px">DATE:</span><span class="btn2">📅 2026-09-26</span>
+    </div>
+    <div class="cal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span class="btn2">←</span><b style="font-size:14px">September 2026</b><span class="btn2">→</span></div>
+      <div class="wk"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+      <!--CAL-->
+      <div style="margin-top:10px;font-size:12px;color:#a1a1aa;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#2563eb;display:inline-block"></span>= has entries (amount shown below date)</div>
+    </div>
+  </div>
+  <div class="card" style="padding:16px 18px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center">
+    <div><b style="font-size:15px">Entries</b><div class="muted" style="font-size:13px;margin-top:2px">12 entries synced from the mobile app · ₱1,460</div></div>
+    <div class="btn">+ Add Entry</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="font-size:17px">Entries for 2026-09-26</h3><span class="btn2" style="color:#ff5252;border-color:rgba(255,82,82,.4)">Delete All for this Date</span></div>
+  <div class="card" style="overflow:hidden">
+  <table>
+   <tr><th>Name</th><th>Amount</th><th>Source</th><th>Time</th><th></th></tr>
+   <!--ROWS-->
+  </table>
+  </div>
+ </div>
+</main>
+</body></html>

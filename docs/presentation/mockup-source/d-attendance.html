@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="d.css">
+<style>
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:12px;color:#a1a1aa;font-weight:600;padding:11px 12px;background:#18181b;border-bottom:1px solid #27272a}
+td{padding:10px 12px;border-bottom:1px solid #27272a}
+.b{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px}
+.act{background:rgba(16,185,129,.15);color:#34d399}.soon{background:rgba(245,158,11,.15);color:#fbbf24}
+.wk,.gr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.wk div{font-size:11px;color:#a1a1aa;padding-bottom:6px}
+.d{height:44px;border-radius:8px;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;color:#d4d4d8}
+.d.h{background:rgba(16,185,129,.1)}
+.d small{font-size:10px;color:#34d399;font-weight:600}
+.d.sel{background:#2563eb;color:#fff}.d.sel small{color:#fff}
+.d.fut{color:#52525b}
+</style></head>
+<body>
+<!--SIDEBAR:attendance-->
+<main class="main">
+  <div class="hdr" style="align-items:center"><div><h2>Attendance Tracker</h2><p>Monitor live gym check-ins.</p></div>
+    <div style="display:flex;align-items:center;gap:10px;background:#18181b;border:1px solid #27272a;padding:6px 12px;border-radius:8px"><span style="font-size:12px;color:#a1a1aa;font-weight:600">DATE:</span><span class="btn2">📅 2026-09-26</span></div>
+  </div>
+  <div class="card" style="padding:14px 16px;display:flex;gap:12px;align-items:center;margin-bottom:18px">
+    <div style="flex:1;background:#18181b;border:1px solid #27272a;border-radius:8px;padding:10px 14px;font-size:14px;color:#71717a">M-001</div>
+    <div class="btn">Check In</div>
+  </div>
+  <div style="display:grid;grid-template-columns:420px 1fr;gap:18px">
+    <div class="card" style="padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span class="btn2">←</span><b style="font-size:14px">September 2026</b><span class="btn2">→</span></div>
+      <div class="wk"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+      <!--ATTCAL-->
+    </div>
+    <div class="card" style="overflow:hidden"><table>
+      <tr><th>Member</th><th>ID</th><th>Time-In</th><th>Status</th></tr>
+      <tr><td><b>Nathalie Cruz</b></td><td>M-014</td><td>09:12 AM</td><td><span class="b act">Active</span></td></tr>
+      <tr><td><b>Matthew Reyes</b></td><td>M-027</td><td>08:57 AM</td><td><span class="b act">Active</span></td></tr>
+      <tr><td><b>Ian Villanueva</b></td><td>M-009</td><td>08:40 AM</td><td><span class="b soon">Expiring Soon</span></td></tr>
+      <tr><td><b>Rose Garcia</b></td><td>M-031</td><td>08:21 AM</td><td><span class="b act">Active</span></td></tr>
+      <tr><td><b>Carlo Mendoza</b></td><td>M-042</td><td>07:58 AM</td><td><span class="b act">Active</span></td></tr>
+      <tr><td><b>Bea Torres</b></td><td>M-055</td><td>07:45 AM</td><td><span class="b act">Active</span></td></tr>
+      <tr><td><b>AJ Navarro</b></td><td>M-061</td><td>07:30 AM</td><td><span class="b act">Active</span></td></tr>
+      <tr><td><b>Dimple Flores</b></td><td>M-018</td><td>07:12 AM</td><td><span class="b act">Active</span></td></tr>
+      <tr><td><b>Janice Ocampo</b></td><td>M-066</td><td>06:48 AM</td><td><span class="b act">Active</span></td></tr>
+    </table></div>
+  </div>
+</main>
+</body></html>

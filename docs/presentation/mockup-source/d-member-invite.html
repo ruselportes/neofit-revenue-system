@@ -1,0 +1,49 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="d.css">
+<style>
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:12px;color:#a1a1aa;font-weight:600;padding:11px 12px;background:#18181b;border-bottom:1px solid #27272a}
+td{padding:10px 12px;border-bottom:1px solid #27272a;vertical-align:middle}
+.b{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.act{background:rgba(16,185,129,.15);color:#34d399}.exp{background:rgba(239,68,68,.15);color:#f87171}.soon{background:rgba(245,158,11,.15);color:#fbbf24}.pen{background:rgba(161,161,170,.15);color:#d4d4d8}
+.av{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-right:10px;vertical-align:middle}
+.a{padding:4px 9px;font-size:12px}
+.ov{position:absolute;inset:0;background:rgba(0,0,0,.62)}
+.mo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:600px;background:#141416;border:1px solid #2e2e33;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.7);padding:24px 26px}
+.f{background:#0f0f10;border:1px solid #27272a;border-radius:8px;padding:9px 12px;font-size:14px}
+.k{font-size:12px;color:#a1a1aa;margin-bottom:5px;font-weight:500}
+</style></head>
+<body>
+<!--SIDEBAR:members-->
+<main class="main">
+  <div class="hdr"><div><h2>Member Management</h2><p>View and manage all gym members.</p></div><div class="btn">+ Add New Member</div></div>
+  <div style="display:flex;gap:12px;margin-bottom:16px">
+    <div style="flex:1;background:#18181b;border:1px solid #27272a;border-radius:8px;padding:10px 14px;font-size:14px;color:#71717a">🔍&nbsp; Search by name or ID...</div>
+    <div style="width:200px;background:#18181b;border:1px solid #27272a;border-radius:8px;padding:10px 14px;font-size:14px">All Status ▾</div>
+  </div>
+  <div class="card" style="overflow:hidden"><table>
+    <tr><th>ID</th><th>Name</th><th>Address</th><th>Plan</th><th>Plan Expiry</th><th>Status</th><th>Actions</th></tr>
+    <!--MEMBERROWS-->
+  </table></div>
+</main>
+<div class="ov"></div>
+<div class="mo">
+  <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:18px;font-weight:700">Member Details</div><div style="color:#a1a1aa;font-size:18px">✕</div></div>
+  <div style="display:flex;align-items:center;gap:14px;margin-top:18px">
+    <div style="width:56px;height:56px;border-radius:50%;background:rgba(16,185,129,.15);color:#10b981;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">IV</div>
+    <div><div style="font-size:18px;font-weight:700">Ian Villanueva</div><div class="muted" style="font-size:13px;margin-top:2px">M-002 · Regular Plan - Semi-Monthly (With Treadmill)</div></div>
+    <span class="b soon" style="margin-left:auto">Expiring Soon</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:18px">
+    <div><div class="k">Joined</div><div class="f">2026-05-18</div></div>
+    <div><div class="k">Plan Expiry</div><div class="f">2026-09-30</div></div>
+    <div><div class="k">Last Payment</div><div class="f">₱450 · Sep 15</div></div>
+  </div>
+  <div style="margin-top:20px;border:1px solid #27403a;background:rgba(16,185,129,.06);border-radius:12px;padding:16px 18px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:700">Member App Access</div><span class="b pen">Not invited yet</span></div>
+    <div class="k" style="margin-top:12px">Member's email</div>
+    <div style="display:flex;gap:10px"><div class="f" style="flex:1;border-color:#10b981">ian.v@email.com</div><div class="btn" style="background:#10b981;white-space:nowrap">Send Invite Link</div></div>
+    <div class="muted" style="font-size:12px;margin-top:10px;line-height:18px">The member gets an email link to sign in. They see only their own membership, payments, rates and announcements, and get renewal reminders 7, 3 and 1 day before the plan expires.</div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px"><div class="btn2" style="padding:9px 16px;font-size:14px">Edit</div><div class="btn2" style="padding:9px 16px;font-size:14px">Renew</div><div class="btn" style="background:#27272a">Close</div></div>
+</div>
+</body></html>

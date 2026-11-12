@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="d.css">
+<style>
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.sc{padding:18px 20px}.sc .t{font-size:13px;color:#a1a1aa;font-weight:500}.sc .v{font-size:28px;font-weight:700;margin-top:6px}.sc .c{font-size:12px;color:#10b981;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:12px;color:#a1a1aa;font-weight:600;padding:10px 12px;background:#18181b;border-bottom:1px solid #27272a}
+td{padding:10px 12px;border-bottom:1px solid #27272a}
+.b{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px}
+.act{background:rgba(16,185,129,.15);color:#34d399}.exp{background:rgba(239,68,68,.15);color:#f87171}.soon{background:rgba(245,158,11,.15);color:#fbbf24}
+.al{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border:1px solid #27272a;border-radius:10px;margin-bottom:8px}
+</style></head>
+<body>
+<!--SIDEBAR:dashboard-->
+<main class="main">
+  <div class="hdr"><div><h2>Welcome Back, Admin</h2><p>Here's what's happening at NeoFit today.</p></div><div class="btn">+ Add New Member</div></div>
+  <div class="grid3">
+    <div class="card sc"><div class="t">Active Members</div><div class="v">86</div><div class="c">of 104 total</div></div>
+    <div class="card sc"><div class="t">Today's Logbook Entries</div><div class="v">12</div><div class="c">from 1 scanned page</div></div>
+    <div class="card sc"><div class="t">Total Members</div><div class="v">104</div></div>
+  </div>
+  <div class="grid3">
+    <div class="card sc"><div class="t">Today's Revenue</div><div class="v" style="color:#3b82f6">₱1,460</div></div>
+    <div class="card sc"><div class="t">Month Revenue</div><div class="v" style="color:#10b981">₱38,450</div></div>
+    <div class="card sc"><div class="t">Year Revenue</div><div class="v" style="color:#00e5ff">₱297,600</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px">
+    <div><h3 style="font-size:16px;margin-bottom:10px">Today's Logbook Entries</h3>
+      <div class="card" style="overflow:hidden"><table>
+        <tr><th>Name</th><th>Amount</th><th>Source</th><th>Scanned</th></tr>
+        <tr><td><b>Dimple</b></td><td>₱70</td><td><span class="b act">Logbook scan</span></td><td class="muted">9:43 AM · Mika Santos</td></tr>
+        <tr><td><b>Ian</b></td><td>₱450</td><td><span class="b act">Logbook scan</span></td><td class="muted">9:43 AM · Mika Santos</td></tr>
+        <tr><td><b>AJ</b></td><td>₱60</td><td><span class="b act">Logbook scan</span></td><td class="muted">9:43 AM · Mika Santos</td></tr>
+        <tr><td><b>Rose</b></td><td>₱90</td><td><span class="b act">Logbook scan</span></td><td class="muted">9:43 AM · Mika Santos</td></tr>
+        <tr><td><b>Nathalie</b></td><td>₱70</td><td><span class="b act">Logbook scan</span></td><td class="muted">9:43 AM · Mika Santos</td></tr>
+        <tr><td><b>Lorraine</b></td><td>₱70</td><td><span class="b act">Logbook scan</span></td><td class="muted">9:43 AM · Mika Santos</td></tr>
+      </table></div>
+    </div>
+    <div><h3 style="font-size:16px;margin-bottom:10px">Membership Alerts</h3>
+      <div style="display:flex;gap:8px;margin-bottom:12px"><span class="btn2" style="background:#27272a">Expired (3)</span><span class="btn2">Expiring Soon (5)</span></div>
+      <div class="al"><div><b style="font-size:14px">Mark Dela Cruz</b><div class="muted" style="font-size:12px">📋 Regular - Monthly</div></div><div style="text-align:right"><span class="b exp">Plan Expired</span><div class="muted" style="font-size:11px;margin-top:4px">Since 2026-09-20</div></div></div>
+      <div class="al"><div><b style="font-size:14px">Joy Bautista</b><div class="muted" style="font-size:12px">📋 Student/Senior - Monthly</div></div><div style="text-align:right"><span class="b exp">Plan Expired</span><div class="muted" style="font-size:11px;margin-top:4px">Since 2026-09-22</div></div></div>
+      <div class="al"><div><b style="font-size:14px">Lorraine Aquino</b><div class="muted" style="font-size:12px">📋 Regular - Semi-Monthly</div></div><div style="text-align:right"><span class="b exp">Plan Expired</span><div class="muted" style="font-size:11px;margin-top:4px">Since 2026-09-24</div></div></div>
+    </div>
+  </div>
+</main>
+</body></html>

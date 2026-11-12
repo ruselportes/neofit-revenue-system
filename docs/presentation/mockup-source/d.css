@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1440px;height:900px;overflow:hidden}
+body{font-family:Inter,'Segoe UI',sans-serif;background:#0a0a0a;color:#fafafa;display:flex;-webkit-font-smoothing:antialiased}
+.side{width:248px;background:#171717;border-right:1px solid #27272a;display:flex;flex-direction:column;padding:20px 14px}
+.side .logo{display:flex;justify-content:center;padding:6px 0 22px}
+.side .logo img{height:74px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.6))}
+.nav{list-style:none;display:flex;flex-direction:column;gap:4px}
+.nav li{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;font-size:14px;font-weight:500;color:#a1a1aa}
+.nav li.on{background:#27272a;color:#fafafa}
+.nav li svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.side .foot{margin-top:auto;border-top:1px solid #27272a;padding-top:12px;display:flex;flex-direction:column;gap:4px;font-size:13px;color:#a1a1aa}
+.side .foot div{padding:8px 12px}
+.main{flex:1;padding:28px 36px;overflow:hidden}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px}
+.hdr h2{font-size:26px;font-weight:700;letter-spacing:-.4px}
+.hdr p{font-size:14px;color:#a1a1aa;margin-top:4px}
+.btn{background:#2563eb;color:#fff;font-weight:600;font-size:14px;padding:9px 16px;border-radius:8px}
+.btn2{background:#18181b;border:1px solid #27272a;color:#fafafa;font-weight:500;font-size:13px;padding:6px 12px;border-radius:8px}
+.card{background:#0f0f10;border:1px solid #27272a;border-radius:10px}
+.muted{color:#a1a1aa}

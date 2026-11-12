@@ -1,0 +1,43 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="m.css">
+<style>
+.row{display:flex;align-items:center;padding:8px 24px;border-bottom:1px solid rgba(255,255,255,.08);position:relative}
+.num{width:24px;text-align:center;font-size:11px;color:#475569}
+.f{flex:1;display:flex;gap:8px;margin:0 8px}
+.in{background:#1E293B;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px;font-size:15px}
+.nm{flex:1}
+.am{width:80px;text-align:right;color:#4ADE80;border-color:rgba(74,222,128,.3)}
+.am.empty{color:#475569;border-color:rgba(255,255,255,.08)}
+.x{width:36px;text-align:center;color:#F87171;font-size:15px}
+.flag{position:absolute;top:4px;right:78px;background:#FBBF24;color:#000;border-radius:4px;padding:1px 4px;font-size:9px;font-weight:800}
+</style></head>
+<body>
+<!--STATUS-->
+<div style="display:flex;align-items:center;justify-content:space-between;padding:56px 24px 16px;border-bottom:1px solid rgba(255,255,255,.08)">
+  <div style="color:#00E5A0;font-size:15px;font-weight:600;width:60px">← Back</div>
+  <div style="text-align:center"><div style="font-size:17px;font-weight:700">Review Entries</div><div class="muted" style="font-size:11px">8 detected · 📱 Local MLKit AI</div></div>
+  <div style="width:60px"></div>
+</div>
+<div style="margin:8px 24px 0;background:rgba(0,229,160,.12);border-radius:12px;padding:8px;text-align:center;color:#00E5A0;font-size:13px;font-weight:600">📅 Log date: September 26, 2026</div>
+<div style="margin:12px 16px 0;background:rgba(251,191,36,.12);border-radius:12px;padding:8px 10px;color:#FBBF24;font-size:12px;line-height:17px">⚠ Gemini API error (Network request failed). Showing Local ML Kit results, which may be inaccurate.</div>
+<div style="margin:8px 24px 0;height:80px;border-radius:12px;overflow:hidden;opacity:.7;position:relative">
+  <div class="paper" style="position:absolute;left:-10px;top:-40px;width:420px;height:200px;transform:rotate(-2.5deg)">
+    <div class="ln hd">Sept 26 — Daily / Monthly</div>
+    <div class="ln"><b>1.</b>Dimple – 70 – G-Cash</div><div class="ln"><b>2.</b>Ian – 450 – G-Cash</div><div class="ln"><b>3.</b>AJ – 60</div>
+  </div>
+</div>
+<div style="display:flex;align-items:center;padding:8px 24px;background:#1A2236;border-bottom:1px solid rgba(255,255,255,.08);margin-top:12px;font-size:11px;color:#64748B;font-weight:600;text-transform:uppercase;letter-spacing:.8px">
+  <span style="width:24px;text-align:center">#</span><span style="flex:1;margin-left:16px">Name</span><span style="width:90px;text-align:right">Amount (₱)</span><span style="width:44px"></span>
+</div>
+<div class="row"><span class="num">1</span><div class="f"><div class="in nm">Dimple</div><div class="in am">70</div></div><span class="x">✕</span></div>
+<div class="row"><span class="num">2</span><div class="f"><div class="in nm">Ian</div><div class="in am">450</div></div><span class="x">✕</span></div>
+<div class="row" style="background:rgba(251,191,36,.05)"><span class="num">3</span><div class="f"><div class="in nm">Rose</div><div class="in am">90</div></div><span class="x">✕</span><span class="flag" style="right:42px">DUP</span></div>
+<div class="row"><span class="num">4</span><div class="f"><div class="in nm">Nathalie</div><div class="in am">70</div></div><span class="x">✕</span></div>
+<div class="row" style="background:rgba(251,191,36,.06)"><span class="num">5</span><div class="f"><div class="in nm">Lorraine</div><div class="in am" style="border-color:rgba(251,191,36,.6)">75</div></div><span class="x">✕</span><span class="flag">⚠ amount?</span></div>
+<div class="row" style="background:rgba(251,191,36,.05)"><span class="num">6</span><div class="f"><div class="in nm">Rose</div><div class="in am">90</div></div><span class="x">✕</span><span class="flag" style="right:42px">DUP</span></div>
+<div class="row"><span class="num">7</span><div class="f"><div class="in nm">Matthew</div><div class="in am">60</div></div><span class="x">✕</span></div>
+<div class="row"><span class="num">8</span><div class="f"><div class="in nm">Janice</div><div class="in am empty">—</div></div><span class="x">✕</span></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:#111827;border-top:1px solid rgba(255,255,255,.08);padding:24px 24px 32px;display:flex;align-items:center;justify-content:space-between">
+  <div><div class="muted" style="font-size:13px">Total Revenue</div><div style="font-size:26px;font-weight:800;color:#4ADE80">₱905</div></div>
+  <div class="grad-btn" style="padding:14px 32px">Confirm &amp; Save</div>
+</div>
+</body></html>
