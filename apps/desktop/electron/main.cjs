@@ -24,7 +24,8 @@ function loadConfig() {
   const file = path.join(app.getPath('userData'), 'neofit-config.json');
   let saved = {};
   try {
-    saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+    // Windows PowerShell and some editors save a byte-order mark, which JSON.parse rejects.
+    saved = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
   } catch {
     // first run, or an unreadable file
   }
