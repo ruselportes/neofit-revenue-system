@@ -4,6 +4,7 @@
     "slug": "neofit-revenue-system",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0A0E1A",
     "ios": {
@@ -17,20 +18,30 @@
     },
     "android": {
       "package": "com.neofit.revenue",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
       "permissions": [
         "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
       ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-secure-store",
       [
         "expo-camera",
         {
-          "cameraPermission": "NeoFit needs camera access to capture logbook pages."
+          "cameraPermission": "NeoFit needs camera access to capture logbook pages.",
+          "recordAudioAndroid": false
         }
       ],
       "expo-mlkit-ocr",
@@ -48,10 +59,27 @@
           }
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "backgroundColor": "#0A0E1A",
+          "imageWidth": 220
+        }
+      ]
     ],
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "36008a5f-2db8-44b0-beee-0b4218d77253"
+      }
+    },
+    "owner": "ruselportes",
+    "updates": {
+      "url": "https://u.expo.dev/36008a5f-2db8-44b0-beee-0b4218d77253"
     }
   }
 }
