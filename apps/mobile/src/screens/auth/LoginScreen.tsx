@@ -4,6 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Body, Button, Field, Notice, Screen, Title, colors } from '../../ui';
 import { messageOf, useServices } from '../../state';
 import type { AuthStackParams } from '../../navigation/types';
+import { VersionLabel } from '../../UpdateModal';
 
 export default function LoginScreen({ navigation }: NativeStackScreenProps<AuthStackParams, 'Login'>) {
   const { auth } = useServices();
@@ -36,6 +37,7 @@ export default function LoginScreen({ navigation }: NativeStackScreenProps<AuthS
         <Text style={{ color: colors.accent, fontWeight: '600' }}>Sign in with an email link</Text>
         <Body muted>For NeoFit members</Body>
       </Pressable>
+      <VersionLabel />
     </Screen>
   );
 }

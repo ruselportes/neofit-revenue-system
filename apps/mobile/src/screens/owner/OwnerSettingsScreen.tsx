@@ -4,6 +4,7 @@ import { shortDate, timeText } from '../../format';
 import { confirmAsync, notify } from '../../platform/confirm';
 import { LAST_SYNC_KEY } from '../../services/Services';
 import { messageOf, useAsync, useAuthState, useServices } from '../../state';
+import { VersionLabel } from '../../UpdateModal';
 import { Body, Button, Card, Field, Label, Notice, Row, Screen, Title } from '../../ui';
 
 export default function OwnerSettingsScreen() {
@@ -122,6 +123,7 @@ export default function OwnerSettingsScreen() {
           }
         }}
       />
+      <VersionLabel />
     </Screen>
   );
 }

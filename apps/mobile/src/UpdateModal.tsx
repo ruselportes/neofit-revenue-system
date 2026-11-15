@@ -3,7 +3,18 @@ import { ActivityIndicator, Modal, Text, View } from 'react-native';
 import * as Updates from 'expo-updates';
 import { colors } from './ui';
 
-type Phase = 'idle' | 'downloading' | 'restarting' | 'failed';
+/** A small line saying which version is running: "1.0.0 · update 01a1df67" or "1.0.0 · installed version". */
+export function VersionLabel() {
+  const update = Updates.isEmbeddedLaunch || !Updates.updateId ? 'installed version' : `update ${Updates.updateId.slice(0, 8)}`;
+  const when = Updates.createdAt && !Updates.isEmbeddedLaunch ? `, ${Updates.createdAt.toLocaleString()}` : '';
+  return (
+    <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center', paddingVertical: 8 }}>
+      {`Version ${Updates.runtimeVersion ?? '1.0.0'} · ${update}${when}`}
+    </Text>
+  );
+}
+
+type Phase ='idle' | 'downloading' | 'restarting' | 'failed';
 
 /**
  * Checks for an over-the-air update when the app opens. When one exists it shows a
