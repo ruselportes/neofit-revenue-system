@@ -8,11 +8,14 @@ import { Services } from './src/services/Services';
 import { ServicesProvider } from './src/state';
 import { Loading, Notice, colors } from './src/ui';
 
+const MEMBER_LINK_URL = 'neofit://auth';
+
 export default function App() {
   // Created once. A missing setting shows a clear message instead of a blank screen.
   const built = useMemo(() => {
     try {
-      return { services: new Services(loadConfig()) };
+      // The sign-in link in a member's email opens this address; the "neofit" scheme in app.json routes it to the app.
+      return { services: new Services(loadConfig(), MEMBER_LINK_URL) };
     } catch (err) {
       return { error: err instanceof ConfigError ? err.message : 'The app could not start.' };
     }
