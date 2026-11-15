@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, Text, View } from 'react-native';
 import * as Updates from 'expo-updates';
 import { colors } from './ui';
 
@@ -9,7 +9,7 @@ export function VersionLabel() {
   const when = Updates.createdAt && !Updates.isEmbeddedLaunch ? `, ${Updates.createdAt.toLocaleString()}` : '';
   return (
     <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center', paddingVertical: 8 }}>
-      {`Version ${Updates.runtimeVersion ?? '1.0.0'} · ${update}${when}`}
+      {`Version ${Updates.runtimeVersion || '1.0.0'} · ${update}${when}`}
     </Text>
   );
 }
@@ -25,7 +25,8 @@ export function UpdateModal() {
   const [phase, setPhase] = useState<Phase>('idle');
 
   useEffect(() => {
-    if (!Updates.isEnabled) return;
+    // Only a release build on a phone takes updates; a browser or the development server has none to take.
+    if (!Updates.isEnabled || Platform.OS === 'web' || __DEV__) return;
     let cancelled = false;
     (async () => {
       try {

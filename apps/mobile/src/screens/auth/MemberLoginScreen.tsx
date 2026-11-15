@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Pressable, Text } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParams } from '../../navigation/types';
 import { messageOf, useServices } from '../../state';
-import { Body, Button, Field, Notice, Screen, Title, colors } from '../../ui';
+import { Body, Button, Field, Logo, Notice, Screen, Title, colors } from '../../ui';
 
 export default function MemberLoginScreen({ navigation }: NativeStackScreenProps<AuthStackParams, 'MemberLogin'>) {
   const { auth } = useServices();
@@ -28,6 +28,9 @@ export default function MemberLoginScreen({ navigation }: NativeStackScreenProps
 
   return (
     <Screen>
+      <View style={{ alignItems: 'center', paddingTop: 36, paddingBottom: 12 }}>
+        <Logo width={170} />
+      </View>
       <Title sub="No password needed.">Member sign in</Title>
       {error ? <Notice kind="error">{error}</Notice> : null}
       {sent ? (

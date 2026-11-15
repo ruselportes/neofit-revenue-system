@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Linking, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -21,14 +22,24 @@ import type { AuthStackParams, MemberStackParams, MemberTabParams, OwnerHistoryP
 
 const theme = { ...DarkTheme, colors: { ...DarkTheme.colors, background: colors.bg, card: colors.surface, border: colors.border, primary: colors.accent, text: colors.text } };
 const headerless = { headerShown: false } as const;
-const tabOptions = {
-  headerShown: false,
-  tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-  tabBarActiveTintColor: colors.accent,
-  tabBarInactiveTintColor: colors.muted,
-  tabBarLabelStyle: { fontSize: 12, fontWeight: '600' as const },
+// The tab bar: a little taller than the default so the labels are never clipped, plus the phone's bottom inset.
+function useTabOptions() {
+  const insets = useSafeAreaInsets();
+  return {
+    headerShown: false,
+    tabBarStyle: { backgroundColor: colors.bg, borderTopColor: colors.border, height: 62 + insets.bottom, paddingTop: 6, paddingBottom: 6 + insets.bottom },
+    tabBarActiveTintColor: colors.accent,
+    tabBarInactiveTintColor: colors.muted,
+    tabBarLabelStyle: { fontSize: 11, lineHeight: 14, flexShrink: 0, fontWeight: '800' as const, letterSpacing: 0.3 },
+  } as const;
+}
+const stackOptions = {
+  headerStyle: { backgroundColor: colors.bg },
+  headerShadowVisible: false,
+  headerTintColor: colors.text,
+  headerTitleStyle: { fontWeight: '800' as const },
+  contentStyle: { backgroundColor: colors.bg },
 } as const;
-const stackOptions = { headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.text, contentStyle: { backgroundColor: colors.bg } } as const;
 
 // A tab's icon: filled when its tab is open, outlined otherwise.
 type IconName = 'camera' | 'time' | 'person-circle' | 'stats-chart' | 'people' | 'settings' | 'home' | 'receipt' | 'pricetags';
@@ -74,7 +85,7 @@ function OwnerHistoryNavigator() {
 const StaffTab = createBottomTabNavigator();
 function StaffTabs() {
   return (
-    <StaffTab.Navigator screenOptions={tabOptions}>
+    <StaffTab.Navigator screenOptions={useTabOptions()}>
       <StaffTab.Screen name="Scan" component={ScanNavigator} options={{ tabBarIcon: icon('camera') }} />
       <StaffTab.Screen name="History" component={StaffHistoryScreen} options={{ tabBarIcon: icon('time') }} />
       <StaffTab.Screen name="Account" component={StaffAccountScreen} options={{ tabBarIcon: icon('person-circle') }} />
@@ -98,7 +109,7 @@ function StaffAccountScreen() {
 const OwnerTab = createBottomTabNavigator();
 function OwnerTabs() {
   return (
-    <OwnerTab.Navigator screenOptions={tabOptions}>
+    <OwnerTab.Navigator screenOptions={useTabOptions()}>
       <OwnerTab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarIcon: icon('stats-chart') }} />
       <OwnerTab.Screen name="Scan" component={ScanNavigator} options={{ tabBarIcon: icon('camera') }} />
       <OwnerTab.Screen name="History" component={OwnerHistoryNavigator} options={{ tabBarIcon: icon('time') }} />
@@ -111,7 +122,7 @@ function OwnerTabs() {
 const MemberTab = createBottomTabNavigator<MemberTabParams>();
 function MemberTabs() {
   return (
-    <MemberTab.Navigator screenOptions={tabOptions}>
+    <MemberTab.Navigator screenOptions={useTabOptions()}>
       <MemberTab.Screen name="Home" component={MemberHomeScreen} options={{ tabBarIcon: icon('home') }} />
       <MemberTab.Screen name="Payments" component={MemberPaymentsScreen} options={{ tabBarIcon: icon('receipt') }} />
       <MemberTab.Screen name="Rates" component={MemberRatesScreen} options={{ title: 'Rates & News', tabBarIcon: icon('pricetags') }} />
