@@ -159,7 +159,7 @@ export default function RootNavigator() {
   useEffect(() => notifications.onTap(() => navigationRef.isReady() && navigationRef.navigate('Home' as never)), [notifications]);
 
   let content;
-  if (state.kind === 'loading') content = <Screen><Loading /></Screen>;
+  if (state.kind === 'loading') content = <Screen><Loading variant="page" /></Screen>;
   else if (state.kind === 'signedOut') content = <AuthNavigator />;
   else if (state.kind === 'member') content = <MemberNavigator />;
   else content = state.profile.role === 'owner' ? <OwnerTabs /> : <StaffTabs />;

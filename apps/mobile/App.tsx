@@ -41,7 +41,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <ServicesProvider value={built.services}>{ready ? <RootNavigator /> : <Loading text="Starting…" />}</ServicesProvider>
+      <ServicesProvider value={built.services}>{ready ? <RootNavigator /> : <View style={{ flex: 1, backgroundColor: colors.bg, padding: 18, paddingTop: 60 }}><Loading variant="page" text="Starting…" /></View>}</ServicesProvider>
       <UpdateModal />
     </SafeAreaProvider>
   );

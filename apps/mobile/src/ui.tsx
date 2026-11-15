@@ -1,8 +1,10 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  ActivityIndicator,
+  Animated,
+  Easing,
   Image,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -10,6 +12,7 @@ import {
   Text,
   TextInput,
   View,
+  type DimensionValue,
   type StyleProp,
   type TextInputProps,
   type ViewStyle,
@@ -67,7 +70,7 @@ export function Screen({
           {children}
         </ScrollView>
       ) : (
-        <View style={[styles.fill, padded && styles.content]}>{children}</View>
+        <View style={[styles.fill, padded ? styles.content : { gap: 0 }]}>{children}</View>
       )}
     </SafeAreaView>
   );
@@ -126,7 +129,7 @@ export function Button({
       ]}
     >
       {busy ? (
-        <ActivityIndicator color={kind === 'primary' ? colors.accentText : colors.text} />
+        <BusyBars color={kind === 'primary' ? colors.accentText : kind === 'danger' ? colors.danger : colors.text} />
       ) : (
         <Text
           style={[
@@ -140,6 +143,18 @@ export function Button({
         </Text>
       )}
     </Pressable>
+  );
+}
+
+/** Inside a busy button: three short pulsing bars instead of a spinner. */
+function BusyBars({ color }: { color: string }) {
+  const pulse = usePulse();
+  return (
+    <Animated.View accessibilityLabel="Working" style={{ flexDirection: 'row', gap: 6, opacity: pulse }}>
+      {[22, 34, 22].map((w, i) => (
+        <View key={i} style={{ width: w, height: 6, borderRadius: 3, backgroundColor: color }} />
+      ))}
+    </Animated.View>
   );
 }
 
@@ -224,11 +239,106 @@ export function Logo({ width = 200 }: { width?: number }) {
   );
 }
 
-export function Loading({ text = 'Loading…' }: { text?: string }) {
+/** A gentle fade in and out, shared by every skeleton block. */
+function usePulse() {
+  const value = useRef(new Animated.Value(0.45)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(value, { toValue: 1, duration: 650, easing: Easing.inOut(Easing.ease), useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(value, { toValue: 0.45, duration: 650, easing: Easing.inOut(Easing.ease), useNativeDriver: Platform.OS !== 'web' }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [value]);
+  return value;
+}
+
+/** One grey placeholder block. */
+export function Skeleton({ width = '100%', height = 14, radius = 8, style }: { width?: DimensionValue; height?: number; radius?: number; style?: StyleProp<ViewStyle> }) {
+  const pulse = usePulse();
+  return <Animated.View style={[{ width, height, borderRadius: radius, backgroundColor: colors.surface2, opacity: pulse }, style]} />;
+}
+
+/** A skeleton card shaped like a list item: a title line, a shorter line and an amount. */
+function SkeletonItem() {
   return (
-    <View style={styles.loading} accessibilityLabel={text}>
-      <ActivityIndicator color={colors.accent} size="large" />
-      <Text style={styles.muted}>{text}</Text>
+    <View style={[styles.card, { gap: 10 }]}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+        <Skeleton width="55%" height={16} />
+        <Skeleton width={70} height={16} />
+      </View>
+      <Skeleton width="35%" height={12} />
+    </View>
+  );
+}
+
+/**
+ * Placeholder while something loads: grey blocks in the shape of what is coming instead of a spinner.
+ * `list` for lists of cards, `dashboard` for the stat tiles and chart, `rows` for a table, `page` for a whole screen.
+ */
+export function Loading({ text = 'Loading…', variant = 'list', caption }: { text?: string; variant?: 'list' | 'dashboard' | 'rows' | 'page'; caption?: string }) {
+  let body: ReactNode;
+  if (variant === 'dashboard') {
+    body = (
+      <>
+        {[0, 1].map((r) => (
+          <View key={r} style={{ flexDirection: 'row', gap: 12 }}>
+            {[0, 1].map((c) => (
+              <View key={c} style={[styles.card, { flex: 1, gap: 10 }]}>
+                <Skeleton width="50%" height={11} />
+                <Skeleton width="80%" height={22} />
+              </View>
+            ))}
+          </View>
+        ))}
+        <View style={[styles.card, { gap: 12 }]}>
+          <Skeleton width="35%" height={11} />
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 120 }}>
+            {[40, 90, 20, 55, 70, 30, 100].map((h, i) => (
+              <Skeleton key={i} height={h} radius={4} style={{ flex: 1 }} width={undefined} />
+            ))}
+          </View>
+        </View>
+      </>
+    );
+  } else if (variant === 'rows') {
+    body = (
+      <View style={[styles.card, { gap: 10, padding: 12 }]}>
+        {Array.from({ length: 7 }, (_, i) => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Skeleton width={18} height={12} />
+            <Skeleton height={30} style={{ flex: 1 }} width={undefined} />
+            <Skeleton width={80} height={30} />
+          </View>
+        ))}
+      </View>
+    );
+  } else if (variant === 'page') {
+    body = (
+      <>
+        <Skeleton width="45%" height={28} />
+        <Skeleton width="65%" height={14} />
+        <SkeletonItem />
+        <SkeletonItem />
+        <SkeletonItem />
+      </>
+    );
+  } else {
+    body = (
+      <>
+        <SkeletonItem />
+        <SkeletonItem />
+        <SkeletonItem />
+        <SkeletonItem />
+      </>
+    );
+  }
+  return (
+    <View style={{ gap: 12 }} accessible accessibilityRole="progressbar" accessibilityLabel={text}>
+      {caption ? <Text style={[styles.muted, { textAlign: 'center' }]}>{caption}</Text> : null}
+      {body}
     </View>
   );
 }

@@ -17,7 +17,7 @@ export default function DashboardScreen() {
     <Screen brand onRefresh={stats.reload} refreshing={stats.loading}>
       <Title sub="Here is how the gym is doing.">{`Hello, ${name}`}</Title>
       {stats.error ? <Notice kind="error">{stats.error}</Notice> : null}
-      {!s && !stats.error ? <Loading /> : null}
+      {!s && !stats.error ? <Loading variant="dashboard" /> : null}
       {s ? (
         <>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>

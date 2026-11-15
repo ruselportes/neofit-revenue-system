@@ -33,7 +33,7 @@ export function MemberHomeScreen() {
   }, [notifications, accountId]);
 
   const account = data.data?.account ?? initial;
-  if (!account) return <Screen><Loading /></Screen>;
+  if (!account) return <Screen><Loading variant="page" /></Screen>;
   const summary = new MembershipSummary(account.joinedDate, account.expiryDate, todayText());
   const status = summary.status;
 
@@ -128,7 +128,7 @@ export function ReceiptScreen({ route }: NativeStackScreenProps<MemberStackParam
 
   const payment = payments.data?.find((p) => p.id === route.params.paymentId);
   if (payments.error) return <Screen><Notice kind="error">{payments.error}</Notice></Screen>;
-  if (!payment || state.kind !== 'member') return <Screen><Loading /></Screen>;
+  if (!payment || state.kind !== 'member') return <Screen><Loading variant="page" /></Screen>;
 
   const receipt: ReceiptData = {
     receiptNo: payment.receiptNo,

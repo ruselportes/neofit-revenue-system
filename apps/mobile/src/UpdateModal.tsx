@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, Text, View } from 'react-native';
+import { Modal, Platform, Text, View } from 'react-native';
 import * as Updates from 'expo-updates';
-import { colors } from './ui';
+import { Skeleton, colors } from './ui';
 
 /** A small line saying which version is running: "1.0.0 · update 01a1df67" or "1.0.0 · installed version". */
 export function VersionLabel() {
@@ -71,7 +71,7 @@ export function UpdateModal() {
             gap: 14,
           }}
         >
-          {phase === 'failed' ? null : <ActivityIndicator size="large" color={colors.accent} />}
+          {phase === 'failed' ? null : <Skeleton height={6} radius={3} style={{ backgroundColor: colors.accent }} />}
           <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>{phase === 'failed' ? 'Update skipped' : 'Updating NeoFit'}</Text>
           <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center' }}>{text}</Text>
         </View>
