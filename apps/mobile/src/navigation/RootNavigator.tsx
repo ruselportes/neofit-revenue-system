@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Linking, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -29,8 +30,13 @@ const tabOptions = {
 } as const;
 const stackOptions = { headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.text, contentStyle: { backgroundColor: colors.bg } } as const;
 
-// A tab's icon: a simple glyph, so no icon font has to be loaded.
-const icon = (glyph: string) => ({ color }: { color: string }) => <Text style={{ color, fontSize: 18 }}>{glyph}</Text>;
+// A tab's icon: filled when its tab is open, outlined otherwise.
+type IconName = 'camera' | 'time' | 'person-circle' | 'stats-chart' | 'people' | 'settings' | 'home' | 'receipt' | 'pricetags';
+const icon =
+  (name: IconName) =>
+  ({ color, focused, size }: { color: string; focused: boolean; size: number }) => (
+    <Ionicons name={focused ? name : (`${name}-outline` as const)} size={size} color={color} />
+  );
 
 const navigationRef = createNavigationContainerRef();
 
@@ -69,9 +75,9 @@ const StaffTab = createBottomTabNavigator();
 function StaffTabs() {
   return (
     <StaffTab.Navigator screenOptions={tabOptions}>
-      <StaffTab.Screen name="Scan" component={ScanNavigator} options={{ tabBarIcon: icon('◉') }} />
-      <StaffTab.Screen name="History" component={StaffHistoryScreen} options={{ tabBarIcon: icon('☰') }} />
-      <StaffTab.Screen name="Account" component={StaffAccountScreen} options={{ tabBarIcon: icon('☺') }} />
+      <StaffTab.Screen name="Scan" component={ScanNavigator} options={{ tabBarIcon: icon('camera') }} />
+      <StaffTab.Screen name="History" component={StaffHistoryScreen} options={{ tabBarIcon: icon('time') }} />
+      <StaffTab.Screen name="Account" component={StaffAccountScreen} options={{ tabBarIcon: icon('person-circle') }} />
     </StaffTab.Navigator>
   );
 }
@@ -93,11 +99,11 @@ const OwnerTab = createBottomTabNavigator();
 function OwnerTabs() {
   return (
     <OwnerTab.Navigator screenOptions={tabOptions}>
-      <OwnerTab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarIcon: icon('▦') }} />
-      <OwnerTab.Screen name="Scan" component={ScanNavigator} options={{ tabBarIcon: icon('◉') }} />
-      <OwnerTab.Screen name="History" component={OwnerHistoryNavigator} options={{ tabBarIcon: icon('☰') }} />
-      <OwnerTab.Screen name="Staff" component={StaffManagementScreen} options={{ tabBarIcon: icon('☺') }} />
-      <OwnerTab.Screen name="Settings" component={OwnerSettingsScreen} options={{ tabBarIcon: icon('⚙') }} />
+      <OwnerTab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarIcon: icon('stats-chart') }} />
+      <OwnerTab.Screen name="Scan" component={ScanNavigator} options={{ tabBarIcon: icon('camera') }} />
+      <OwnerTab.Screen name="History" component={OwnerHistoryNavigator} options={{ tabBarIcon: icon('time') }} />
+      <OwnerTab.Screen name="Staff" component={StaffManagementScreen} options={{ tabBarIcon: icon('people') }} />
+      <OwnerTab.Screen name="Settings" component={OwnerSettingsScreen} options={{ tabBarIcon: icon('settings') }} />
     </OwnerTab.Navigator>
   );
 }
@@ -106,9 +112,9 @@ const MemberTab = createBottomTabNavigator<MemberTabParams>();
 function MemberTabs() {
   return (
     <MemberTab.Navigator screenOptions={tabOptions}>
-      <MemberTab.Screen name="Home" component={MemberHomeScreen} options={{ tabBarIcon: icon('⌂') }} />
-      <MemberTab.Screen name="Payments" component={MemberPaymentsScreen} options={{ tabBarIcon: icon('₱') }} />
-      <MemberTab.Screen name="Rates" component={MemberRatesScreen} options={{ title: 'Rates & News', tabBarIcon: icon('★') }} />
+      <MemberTab.Screen name="Home" component={MemberHomeScreen} options={{ tabBarIcon: icon('home') }} />
+      <MemberTab.Screen name="Payments" component={MemberPaymentsScreen} options={{ tabBarIcon: icon('receipt') }} />
+      <MemberTab.Screen name="Rates" component={MemberRatesScreen} options={{ title: 'Rates & News', tabBarIcon: icon('pricetags') }} />
     </MemberTab.Navigator>
   );
 }

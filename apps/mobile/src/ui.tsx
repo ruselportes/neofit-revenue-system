@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Pressable,
@@ -119,16 +120,37 @@ export function Button({
   );
 }
 
-export function Field({ label, error, ...input }: { label: string; error?: string } & TextInputProps) {
+/** A labelled text input. A password field (secureTextEntry) gets a show/hide button. */
+export function Field({ label, error, secureTextEntry, ...input }: { label: string; error?: string } & TextInputProps) {
+  const [shown, setShown] = useState(false);
+  const border = error ? { borderColor: colors.danger } : null;
   return (
     <View style={{ gap: 6 }}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        placeholderTextColor={colors.muted}
-        style={[styles.input, error ? { borderColor: colors.danger } : null]}
-        {...input}
-      />
+      {secureTextEntry ? (
+        <View style={[styles.input, styles.inputRow, border]}>
+          <TextInput
+            accessibilityLabel={label}
+            placeholderTextColor={colors.muted}
+            style={styles.inputBare}
+            secureTextEntry={!shown}
+            autoCapitalize="none"
+            autoCorrect={false}
+            {...input}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={shown ? 'Hide password' : 'Show password'}
+            onPress={() => setShown((s) => !s)}
+            hitSlop={10}
+            style={{ paddingLeft: 10, paddingVertical: 8 }}
+          >
+            <Ionicons name={shown ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.muted} />
+          </Pressable>
+        </View>
+      ) : (
+        <TextInput accessibilityLabel={label} placeholderTextColor={colors.muted} style={[styles.input, border]} {...input} />
+      )}
       {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
     </View>
   );
@@ -182,6 +204,8 @@ const styles = StyleSheet.create({
   buttonSmall: { minHeight: 44, borderRadius: 12, paddingHorizontal: 14 },
   buttonText: { color: colors.text, fontSize: 16, fontWeight: '700' },
   input: { minHeight: 52, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface2, color: colors.text, paddingHorizontal: 14, fontSize: 16 },
+  inputRow: { flexDirection: 'row', alignItems: 'center' },
+  inputBare: { flex: 1, minHeight: 50, color: colors.text, fontSize: 16, padding: 0 },
   notice: { borderWidth: 1, borderRadius: 12, padding: 12, backgroundColor: colors.surface },
   badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, alignSelf: 'flex-start' },
   loading: { alignItems: 'center', justifyContent: 'center', gap: 12, padding: 40 },
