@@ -6,6 +6,7 @@ import { ConfigError, loadConfig } from './src/config';
 import RootNavigator from './src/navigation/RootNavigator';
 import { Services } from './src/services/Services';
 import { ServicesProvider } from './src/state';
+import { UpdateModal } from './src/UpdateModal';
 import { Loading, Notice, colors } from './src/ui';
 
 const MEMBER_LINK_URL = 'neofit://auth';
@@ -41,6 +42,7 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="light" />
       <ServicesProvider value={built.services}>{ready ? <RootNavigator /> : <Loading text="Starting…" />}</ServicesProvider>
+      <UpdateModal />
     </SafeAreaProvider>
   );
 }
