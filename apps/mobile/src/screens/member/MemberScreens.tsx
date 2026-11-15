@@ -38,7 +38,7 @@ export function MemberHomeScreen() {
   const status = summary.status;
 
   return (
-    <Screen onRefresh={data.reload} refreshing={data.loading}>
+    <Screen brand onRefresh={data.reload} refreshing={data.loading}>
       <Title sub="Welcome to NeoFit">{`Hi, ${account.name.split(' ')[0]}`}</Title>
       {data.error ? <Notice kind="error">{data.error}</Notice> : null}
 
@@ -96,7 +96,7 @@ export function MemberPaymentsScreen() {
   const thisYear = (payments.data ?? []).filter((p) => dateOfIso(p.paidAt).startsWith(year));
 
   return (
-    <Screen onRefresh={payments.reload} refreshing={payments.loading}>
+    <Screen brand onRefresh={payments.reload} refreshing={payments.loading}>
       <Title sub={`${thisYear.length} ${thisYear.length === 1 ? 'payment' : 'payments'} in ${year}`}>My Payments</Title>
       {payments.error ? <Notice kind="error">{payments.error}</Notice> : null}
       {payments.loading && !payments.data ? <Loading /> : null}
@@ -180,7 +180,7 @@ export function MemberRatesScreen() {
   }, []);
 
   return (
-    <Screen onRefresh={data.reload} refreshing={data.loading}>
+    <Screen brand onRefresh={data.reload} refreshing={data.loading}>
       <Title sub="Official prices and announcements">Rates & News</Title>
       {data.error ? <Notice kind="error">{data.error}</Notice> : null}
       {data.loading && !data.data ? <Loading /> : null}

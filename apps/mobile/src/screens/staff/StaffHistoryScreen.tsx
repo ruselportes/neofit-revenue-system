@@ -63,7 +63,7 @@ export default function StaffHistoryScreen() {
   const shown = (list.data ?? []).filter((i) => tab === 'all' || i.date === today || dateOfIso(i.time) === today);
 
   return (
-    <Screen onRefresh={refresh} refreshing={list.loading}>
+    <Screen brand onRefresh={refresh} refreshing={list.loading}>
       <Title sub="Pull down to upload waiting pages">History</Title>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {(['today', 'all'] as const).map((t) => (

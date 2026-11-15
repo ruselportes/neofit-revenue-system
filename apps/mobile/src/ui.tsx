@@ -45,15 +45,19 @@ export function Screen({
   refreshing = false,
   scroll = true,
   padded = true,
+  brand = false,
 }: {
   children: ReactNode;
   onRefresh?: () => void;
   refreshing?: boolean;
   scroll?: boolean;
   padded?: boolean;
+  /** Shows the NeoFit brand bar at the top. Used on the main screen of each tab. */
+  brand?: boolean;
 }) {
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
+      {brand ? <BrandBar /> : null}
       {scroll ? (
         <ScrollView
           contentContainerStyle={[padded && styles.content, { gap: 14 }]}
@@ -196,6 +200,18 @@ export function Badge({ text, tone = 'info' }: { text: string; tone?: 'ok' | 'wa
   );
 }
 
+/** A slim bar with the NF mark and the NEOFIT name, at the top of the main screens. */
+export function BrandBar() {
+  return (
+    <View style={styles.brandBar} accessibilityRole="header" accessibilityLabel="NeoFit">
+      <Image source={require('../assets/logo-mark.png')} style={{ width: 40, height: 18 }} resizeMode="contain" />
+      <Text style={styles.brandText}>NEOFIT</Text>
+      <View style={{ flex: 1 }} />
+      <Text style={styles.brandSub}>FITNESS GYM</Text>
+    </View>
+  );
+}
+
 /** The white NeoFit logo, for the sign-in screens. */
 export function Logo({ width = 200 }: { width?: number }) {
   return (
@@ -228,6 +244,18 @@ export function StatusTone(status: string): 'ok' | 'warn' | 'bad' | 'info' {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   fill: { flex: 1, gap: 14 },
+  brandBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.bg,
+  },
+  brandText: { color: colors.text, fontSize: 17, fontWeight: '900', fontStyle: 'italic', letterSpacing: 1.5 },
+  brandSub: { color: colors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 2 },
   content: { padding: 18, paddingBottom: 40 },
   title: { color: colors.text, fontSize: 30, fontWeight: '900', letterSpacing: -0.5 },
   muted: { color: colors.muted, fontSize: 14, lineHeight: 20 },

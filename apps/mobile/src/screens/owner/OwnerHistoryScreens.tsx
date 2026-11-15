@@ -11,7 +11,7 @@ export function OwnerHistoryScreen({ navigation }: NativeStackScreenProps<OwnerH
   const list = useAsync(() => uploads.all(), []);
 
   return (
-    <Screen onRefresh={list.reload} refreshing={list.loading}>
+    <Screen brand onRefresh={list.reload} refreshing={list.loading}>
       <Title sub="All uploads from all staff">Revenue History</Title>
       {list.error ? <Notice kind="error">{list.error}</Notice> : null}
       {list.loading && !list.data ? <Loading /> : null}

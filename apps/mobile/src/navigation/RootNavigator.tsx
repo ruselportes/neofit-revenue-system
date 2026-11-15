@@ -98,7 +98,7 @@ function StaffAccountScreen() {
   const { auth } = useServices();
   const state = useAuthState();
   return (
-    <Screen>
+    <Screen brand>
       <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800' }}>{state.kind === 'staff' ? state.profile.fullName : ''}</Text>
       <Text style={{ color: colors.muted }}>{state.kind === 'staff' ? state.profile.email : ''}</Text>
       <Button title="Sign Out" kind="danger" onPress={() => auth.signOut()} />

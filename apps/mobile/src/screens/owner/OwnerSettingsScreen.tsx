@@ -32,7 +32,7 @@ export default function OwnerSettingsScreen() {
   };
 
   return (
-    <Screen>
+    <Screen brand>
       <Title sub={profile?.email}>Settings</Title>
       {message ? <Notice kind={message.kind}>{message.text}</Notice> : null}
 

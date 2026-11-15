@@ -35,7 +35,7 @@ export default function StaffManagementScreen() {
   const total = staff.data?.length ?? 0;
 
   return (
-    <Screen onRefresh={staff.reload} refreshing={staff.loading}>
+    <Screen brand onRefresh={staff.reload} refreshing={staff.loading}>
       <Title sub="Accounts are created in Supabase by the owner.">Staff</Title>
       {staff.error ? <Notice kind="error">{staff.error}</Notice> : null}
       {staff.loading && !staff.data ? <Loading /> : null}

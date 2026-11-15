@@ -14,7 +14,7 @@ export default function DashboardScreen() {
   const s = stats.data;
 
   return (
-    <Screen onRefresh={stats.reload} refreshing={stats.loading}>
+    <Screen brand onRefresh={stats.reload} refreshing={stats.loading}>
       <Title sub="Here is how the gym is doing.">{`Hello, ${name}`}</Title>
       {stats.error ? <Notice kind="error">{stats.error}</Notice> : null}
       {!s && !stats.error ? <Loading /> : null}
