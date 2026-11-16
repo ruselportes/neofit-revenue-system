@@ -68,7 +68,6 @@ export default function MembersView({ autoOpenForm }: { autoOpenForm: boolean })
               <tr>
                 <th>ID</th>
                 <th>Name</th>
-                <th>Address</th>
                 <th>Plan</th>
                 <th>Expires</th>
                 <th>Status</th>
@@ -79,10 +78,9 @@ export default function MembersView({ autoOpenForm }: { autoOpenForm: boolean })
               {shown.map((m) => (
                 <tr key={m.id}>
                   <td>{m.memberId}</td>
-                  <td>{m.name}</td>
-                  <td>{m.address || '—'}</td>
+                  <td className="nowrap">{m.name}</td>
                   <td>{m.plan}</td>
-                  <td>{formatDate(m.expiryDate)}</td>
+                  <td className="nowrap">{formatDate(m.expiryDate)}</td>
                   <td>
                     <StatusBadge status={m.status} />
                   </td>
@@ -325,6 +323,7 @@ function MemberDetails({ member, onClose, onEdit, onRenew, onInvited }: { member
         <dt>Joined</dt><dd>{formatDate(member.joinedDate)}</dd>
         <dt>Plan expires</dt><dd>{formatDate(member.expiryDate)}</dd>
         <dt>Contact</dt><dd>{member.contact}</dd>
+        <dt>Address</dt><dd>{member.address || '—'}</dd>
         <dt>Last payment</dt>
         <dd>{last ? `${formatPeso(last.amount)} on ${formatDate(last.paidAt.slice(0, 10))} (receipt ${last.receiptNo})` : '—'}</dd>
       </dl>

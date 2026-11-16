@@ -2,6 +2,7 @@ import { useEffect, useId, useState, type InputHTMLAttributes, type ReactNode } 
 import type { MemberStatus } from './api/types';
 import { saveFile } from './download';
 import { formatPeso } from './format';
+import { messageOf } from './state';
 
 /** A password box with an eye button that shows or hides what is typed. */
 export function PasswordInput(props: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
@@ -121,6 +122,51 @@ export function Modal({ title, onClose, children, footer }: { title: string; onC
         {footer && <div className="modal-foot">{footer}</div>}
       </div>
     </div>
+  );
+}
+
+/** Asks before something that cannot be taken back. `action` runs when the administrator confirms; a failure is shown inside the box. */
+export function ConfirmDialog({
+  title,
+  text,
+  confirmLabel = 'Delete',
+  busyLabel = 'Deleting…',
+  action,
+  onClose,
+}: {
+  title: string;
+  text: string;
+  confirmLabel?: string;
+  busyLabel?: string;
+  action: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      await action();
+      onClose();
+    } catch (err) {
+      setError(messageOf(err));
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal
+      title={title}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn danger" disabled={busy} onClick={() => void run()}>{busy ? busyLabel : confirmLabel}</button>
+        </>
+      }
+    >
+      {error && <Notice kind="error">{error}</Notice>}
+      <p style={{ margin: 0 }}>{text}</p>
+    </Modal>
   );
 }
 

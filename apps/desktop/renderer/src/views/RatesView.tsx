@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { Rate } from '../api/types';
-import { Notice } from '../components';
+import { ConfirmDialog, Notice } from '../components';
 import { formatDate } from '../format';
 import { messageOf, useApp, useAsync } from '../state';
 import { CloudGate } from './CloudGate';
@@ -13,6 +13,7 @@ export default function RatesView() {
   const [rows, setRows] = useState<Rate[]>([]);
   const [message, setMessage] = useState<{ kind?: 'error' | 'ok'; text: string }>();
   const [busy, setBusy] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => {
     if (loaded.data) setRows(loaded.data);
@@ -86,7 +87,7 @@ export default function RatesView() {
           </table>
         </div>
         <div className="modal-foot" style={{ marginTop: 14 }}>
-          <button className="btn" disabled={busy} onClick={() => run(() => api.rates.reset(), 'Official rates restored.')}>
+          <button className="btn" disabled={busy} onClick={() => setConfirmReset(true)}>
             Reset Default
           </button>
           <button className="btn primary" disabled={busy} onClick={() => run(() => api.rates.save(rows), 'Rates saved.')}>
@@ -97,6 +98,19 @@ export default function RatesView() {
           Changes apply at once to the revenue figures and to the amount filled in on the member forms.
         </p>
       </section>
+      {confirmReset && (
+        <ConfirmDialog
+          title="Restore the official rates"
+          text="Replace every price above with NeoFit's official rates? Prices you changed are lost, and revenue figures and the member forms use the official rates again."
+          confirmLabel="Restore rates"
+          busyLabel="Restoring…"
+          onClose={() => setConfirmReset(false)}
+          action={async () => {
+            setRows(await api.rates.reset());
+            setMessage({ kind: 'ok', text: 'Official rates restored.' });
+          }}
+        />
+      )}
       <section aria-labelledby="news" style={{ marginTop: 24 }}>
         <h2 id="news" style={{ marginBottom: 10 }}>Announcements for members</h2>
         <CloudGate feature="Announcements">
@@ -131,15 +145,7 @@ function Announcements() {
     }
   };
 
-  const remove = async (id: string) => {
-    setError(undefined);
-    try {
-      await api.cloud.removeAnnouncement(id);
-      list.reload();
-    } catch (err) {
-      setError(messageOf(err));
-    }
-  };
+  const [removing, setRemoving] = useState<{ id: string; title: string } | null>(null);
 
   return (
     <div className="two-col">
@@ -154,7 +160,7 @@ function Announcements() {
                 <div className="hint">{formatDate(a.postedAt.slice(0, 10))}</div>
                 <div>{a.body}</div>
               </div>
-              <button className="btn small danger" onClick={() => remove(a.id)} aria-label={`Remove ${a.title}`}>Remove</button>
+              <button className="btn small danger" onClick={() => setRemoving({ id: a.id, title: a.title })} aria-label={`Remove ${a.title}`}>Remove</button>
             </li>
           ))}
         </ul>
@@ -172,6 +178,19 @@ function Announcements() {
         </label>
         <button className="btn primary" disabled={busy}>{busy ? 'Posting…' : 'Post Announcement'}</button>
       </form>
+      {removing && (
+        <ConfirmDialog
+          title="Remove announcement"
+          text={`Remove "${removing.title}"? Members will no longer see it. This cannot be undone.`}
+          confirmLabel="Remove"
+          busyLabel="Removing…"
+          onClose={() => setRemoving(null)}
+          action={async () => {
+            await api.cloud.removeAnnouncement(removing.id);
+            list.reload();
+          }}
+        />
+      )}
     </div>
   );
 }

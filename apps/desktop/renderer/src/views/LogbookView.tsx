@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import type { DayTotal, LogbookRow } from '../api/types';
-import { Modal, Notice } from '../components';
+import { ConfirmDialog, Modal, Notice } from '../components';
 import { formatDate, formatPeso, monthName, shiftMonth, todayText } from '../format';
 import { messageOf, useApp, useAsync } from '../state';
 import { CloudGate } from './CloudGate';
@@ -91,7 +91,7 @@ function LogbookBody() {
                       <td>{r.name}</td>
                       <td className="num">{r.amount === null ? '—' : formatPeso(r.amount)}</td>
                       <td>{r.source === 'scan' ? 'Scanned' : 'Added by hand'}</td>
-                      <td>{timeOf(r.createdAt)}</td>
+                      <td className="nowrap">{timeOf(r.createdAt)}</td>
                       <td>
                         <div className="actions">
                           <button className="btn small" onClick={() => setDialog({ kind: 'edit', row: r })}>Edit</button>
@@ -110,7 +110,7 @@ function LogbookBody() {
       {dialog?.kind === 'edit' && <EditEntry row={dialog.row} onClose={() => setDialog(null)} onSaved={changed} />}
       {dialog?.kind === 'add' && <AddEntries date={date} onClose={() => setDialog(null)} onSaved={changed} />}
       {dialog?.kind === 'delete-entry' && (
-        <Confirm
+        <ConfirmDialog
           title="Delete entry"
           text={`Delete ${dialog.row.name}${dialog.row.amount === null ? '' : ` (${formatPeso(dialog.row.amount)})`} from the logbook?`}
           onClose={() => setDialog(null)}
@@ -121,7 +121,7 @@ function LogbookBody() {
         />
       )}
       {dialog?.kind === 'delete-day' && (
-        <Confirm
+        <ConfirmDialog
           title="Delete all entries"
           text={`Delete all ${day.data?.count ?? 0} entries of ${formatDate(date)}? The revenue of that day will drop by ${formatPeso(day.data?.total ?? 0)}. This cannot be undone.`}
           onClose={() => setDialog(null)}
@@ -275,31 +275,3 @@ function AddEntries({ date, onClose, onSaved }: { date: string; onClose: () => v
   );
 }
 
-function Confirm({ title, text, action, onClose }: { title: string; text: string; action: () => Promise<void>; onClose: () => void }) {
-  const [error, setError] = useState<string>();
-  const [busy, setBusy] = useState(false);
-  const run = async () => {
-    setBusy(true);
-    try {
-      await action();
-    } catch (err) {
-      setError(messageOf(err));
-      setBusy(false);
-    }
-  };
-  return (
-    <Modal
-      title={title}
-      onClose={onClose}
-      footer={
-        <>
-          <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn danger" disabled={busy} onClick={run}>{busy ? 'Deleting…' : 'Delete'}</button>
-        </>
-      }
-    >
-      {error && <Notice kind="error">{error}</Notice>}
-      <p style={{ margin: 0 }}>{text}</p>
-    </Modal>
-  );
-}

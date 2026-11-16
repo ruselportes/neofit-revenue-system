@@ -141,7 +141,8 @@ async function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
-    minWidth: 960,
+    // Below this width the Members table and the Logbook no longer fit next to the sidebar.
+    minWidth: 1100,
     minHeight: 600,
     title: 'NeoFit Revenue System',
     icon: path.join(__dirname, 'neofit.ico'),
