@@ -189,6 +189,45 @@ ipcMain.handle('install-update', () => {
   if (autoUpdater) autoUpdater.quitAndInstall();
 });
 
+/**
+ * "Connect to the cloud" form: checks that the owner can sign in to the Supabase project, saves the
+ * connection in the settings file (private to this user) and restarts the app so the local API picks it up.
+ */
+ipcMain.handle('save-cloud-config', async (_event, input) => {
+  const url = String(input?.url ?? '').trim().replace(/\/+$/, '');
+  const anonKey = String(input?.anonKey ?? '').trim();
+  const ownerEmail = String(input?.ownerEmail ?? '').trim();
+  const ownerPassword = String(input?.ownerPassword ?? '');
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) {
+    return { ok: false, error: 'The project URL should look like https://<project>.supabase.co' };
+  }
+  if (!anonKey || !ownerEmail || !ownerPassword) return { ok: false, error: 'Fill in every field.' };
+
+  try {
+    const res = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { apikey: anonKey, 'content-type': 'application/json' },
+      body: JSON.stringify({ email: ownerEmail, password: ownerPassword }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { ok: false, error: `Supabase refused the sign-in: ${body.error_description || body.msg || res.status}. Check the anon key, email and password.` };
+    }
+  } catch (err) {
+    return { ok: false, error: `Could not reach Supabase. Check the internet connection. (${err.message})` };
+  }
+
+  const config = loadConfig();
+  config.cloud = { url, anonKey, ownerEmail, ownerPassword };
+  fs.writeFileSync(path.join(app.getPath('userData'), 'neofit-config.json'), JSON.stringify(config, null, 2), { mode: 0o600 });
+  setTimeout(() => {
+    app.relaunch();
+    app.exit(0);
+  }, 800);
+  return { ok: true };
+});
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {

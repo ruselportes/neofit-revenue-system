@@ -15,4 +15,6 @@ contextBridge.exposeInMainWorld('neofit', {
   onDownloadProgress: (cb) => ipcRenderer.on('download-progress', (_e, data) => cb(data.percent)),
   onUpdateDownloaded: (cb) => ipcRenderer.on('update-downloaded', (_e, version) => cb(version)),
   installUpdate: () => ipcRenderer.invoke('install-update'),
+  // Connects this computer to the Supabase project (Logbook, invites, announcements). Restarts the app on success.
+  saveCloudConfig: (config) => ipcRenderer.invoke('save-cloud-config', config),
 });

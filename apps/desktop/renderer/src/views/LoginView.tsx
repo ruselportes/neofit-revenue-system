@@ -7,6 +7,11 @@ import logoImg from '../assets/logo.png';
 
 type Mode = 'signin' | 'setup' | 'forgot' | 'key';
 
+/** The running version, so it is easy to tell which build is open (and whether an update has arrived). */
+function LoginVersion() {
+  return <div className="login-version">NeoFit Revenue System · v{window.neofit?.version ?? 'dev'}</div>;
+}
+
 /** Sign in, create the administrator account the first time, or reset a forgotten password with the recovery key. */
 export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (s: Session) => void }) {
   const [mode, setMode] = useState<Mode | null>(null);
@@ -60,6 +65,7 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
   if (mode === 'key' && issued) {
     return (
       <div className="login">
+        <LoginVersion />
         <div className="card">
           <img className="login-logo" src={logoImg} alt="NeoFit Fitness Gym" />
           <div>
@@ -83,6 +89,7 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
 
   return (
     <div className="login">
+      <LoginVersion />
       <form className="card" onSubmit={submit}>
         <img className="login-logo" src={logoImg} alt="NeoFit Fitness Gym" />
         <div>

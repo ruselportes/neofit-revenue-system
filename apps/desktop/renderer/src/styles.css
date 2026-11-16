@@ -217,3 +217,7 @@ td .actions { display: flex; gap: 6px; justify-content: flex-end; }
 .foot-btn.attention { color: var(--warn); }
 .foot-btn.attention .nav-icon { animation: pulse 2s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+/* version on the sign-in page */
+.login { position: relative; }
+.login-version { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 0.75rem; color: var(--muted); opacity: 0.7; letter-spacing: 0.5px; pointer-events: none; }

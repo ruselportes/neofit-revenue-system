@@ -22,6 +22,12 @@ declare global {
       onDownloadProgress?: (cb: (percent: number) => void) => void;
       onUpdateDownloaded?: (cb: (version: string) => void) => void;
       installUpdate?: () => Promise<void>;
+      saveCloudConfig?: (config: {
+        url: string;
+        anonKey: string;
+        ownerEmail: string;
+        ownerPassword: string;
+      }) => Promise<{ ok: true } | { ok: false; error: string }>;
     };
   }
 }
