@@ -13,9 +13,14 @@ export function CloudGate({ feature, children }: { feature: string; children: Re
   return <>{children}</>;
 }
 
-/** First-time connection to the gym's Supabase project. Inside the desktop app it is a form; in a browser it explains the file. */
+/**
+ * Connects this computer to the gym's Supabase project. The installer already contains the project URL and anon key,
+ * so the administrator normally types only the owner's email and password. A build without them (development) also
+ * shows the URL and key fields. In a plain browser it explains the settings file instead.
+ */
 function ConnectCloud({ feature }: { feature: string }) {
   const save = window.neofit?.saveCloudConfig;
+  const preset = window.neofit?.cloudPreset === true;
   const [url, setUrl] = useState('');
   const [anonKey, setAnonKey] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
@@ -38,7 +43,7 @@ function ConnectCloud({ feature }: { feature: string }) {
     e.preventDefault();
     setError(undefined);
     setBusy(true);
-    const result = await save({ url, anonKey, ownerEmail, ownerPassword });
+    const result = await save(preset ? { ownerEmail, ownerPassword } : { url, anonKey, ownerEmail, ownerPassword });
     if (result.ok) setDone(true);
     else setError(result.error);
     setBusy(false);
@@ -49,19 +54,23 @@ function ConnectCloud({ feature }: { feature: string }) {
       <div>
         <h2>Connect to the cloud</h2>
         <p className="hint">
-          {feature} needs the gym's Supabase project. Enter its details once; they are kept on this computer only. Use the owner account
-          from <code>supabase/README.md</code> step 3. The app restarts when it is connected.
+          {feature} shows the gym's online data. Sign in with the owner account once; it is kept on this computer only. The app
+          restarts when it is connected.
         </p>
       </div>
       {error && <Notice kind="error">{error}</Notice>}
-      <label className="field">
-        <span>Project URL</span>
-        <input className="input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://your-project.supabase.co" autoComplete="off" required />
-      </label>
-      <label className="field">
-        <span>Anon (public) key</span>
-        <PasswordInput value={anonKey} onChange={(e) => setAnonKey(e.target.value)} autoComplete="off" required />
-      </label>
+      {!preset && (
+        <>
+          <label className="field">
+            <span>Project URL</span>
+            <input className="input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://your-project.supabase.co" autoComplete="off" required />
+          </label>
+          <label className="field">
+            <span>Anon (public) key</span>
+            <PasswordInput value={anonKey} onChange={(e) => setAnonKey(e.target.value)} autoComplete="off" required />
+          </label>
+        </>
+      )}
       <label className="field">
         <span>Owner email</span>
         <input className="input" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} autoComplete="off" required />

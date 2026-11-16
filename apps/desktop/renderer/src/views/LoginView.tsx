@@ -22,6 +22,13 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
   const [issued, setIssued] = useState<SessionWithKey | null>(null);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  // First-run setup can also take the owner's login for the cloud (optional). It is checked before the account is made
+  // and saved after the recovery key is kept, because saving restarts the app.
+  const [cloudEmail, setCloudEmail] = useState('');
+  const [cloudPassword, setCloudPassword] = useState('');
+  const [pendingCloud, setPendingCloud] = useState<{ ownerEmail: string; ownerPassword: string } | null>(null);
+  const [restarting, setRestarting] = useState(false);
+  const canConnect = typeof window.neofit?.checkCloudLogin === 'function' && typeof window.neofit?.saveCloudConfig === 'function';
 
   useEffect(() => {
     api.auth.needsSetup().then(
@@ -46,11 +53,23 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
     e.preventDefault();
     setError(undefined);
     if ((mode === 'setup' || mode === 'forgot') && password !== confirm) return setError('The passwords do not match.');
+    const wantsCloud = mode === 'setup' && canConnect && (cloudEmail.trim() !== '' || cloudPassword !== '');
+    if (wantsCloud && (!cloudEmail.trim() || !cloudPassword)) return setError('Enter both the owner email and the owner password, or leave both empty.');
     setBusy(true);
     try {
       if (mode === 'signin') {
         onSignedIn(await api.auth.login(email, password));
       } else {
+        if (wantsCloud) {
+          // Prove the owner login works before anything is created, so a typo does not leave a half-finished setup.
+          const check = await window.neofit!.checkCloudLogin!({ ownerEmail: cloudEmail.trim(), ownerPassword: cloudPassword });
+          if (!check.ok) {
+            setError(check.error);
+            setBusy(false);
+            return;
+          }
+          setPendingCloud({ ownerEmail: cloudEmail.trim(), ownerPassword: cloudPassword });
+        }
         // Both setup and reset end with a new recovery key that must be saved before the app opens.
         const result = await (mode === 'setup' ? api.auth.setup(email, password) : api.auth.resetPassword(email, recoveryKey, password));
         setIssued(result);
@@ -62,6 +81,28 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
     setBusy(false);
   };
 
+  // After the recovery key is saved: connect to the cloud if the owner's login was given (this restarts the app), else open the app.
+  const finishSetup = async () => {
+    if (!issued) return;
+    if (pendingCloud) {
+      const saved = await window.neofit!.saveCloudConfig!(pendingCloud);
+      if (saved.ok) return setRestarting(true);
+    }
+    onSignedIn(issued);
+  };
+
+  if (restarting) {
+    return (
+      <div className="login">
+        <LoginVersion />
+        <div className="card">
+          <img className="login-logo" src={logoImg} alt="NeoFit Fitness Gym" />
+          <Notice kind="ok">Connected to the cloud. The app is restarting. Sign in with the account you just created.</Notice>
+        </div>
+      </div>
+    );
+  }
+
   if (mode === 'key' && issued) {
     return (
       <div className="login">
@@ -72,7 +113,7 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
             <h1>Save your recovery key</h1>
             <p className="hint">If you forget the password, this key lets you set a new one. There is no other way to get back in.</p>
           </div>
-          <RecoveryKeyPanel recoveryKey={issued.recoveryKey} doneLabel="Continue" onDone={() => onSignedIn(issued)} />
+          <RecoveryKeyPanel recoveryKey={issued.recoveryKey} doneLabel="Continue" onDone={() => void finishSetup()} />
         </div>
       </div>
     );
@@ -131,6 +172,22 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
             <PasswordInput autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
             <span className="hint">At least 8 characters.</span>
           </label>
+        )}
+        {mode === 'setup' && canConnect && (
+          <fieldset className="cloud-fields">
+            <legend>Cloud login (optional)</legend>
+            <p className="hint">
+              The owner account of the gym's online data, for the Logbook and Announcements. You can also add it later from the Logbook.
+            </p>
+            <label className="field">
+              <span>Owner email</span>
+              <input className="input" type="email" value={cloudEmail} onChange={(e) => setCloudEmail(e.target.value)} autoComplete="off" />
+            </label>
+            <label className="field">
+              <span>Owner password</span>
+              <PasswordInput value={cloudPassword} onChange={(e) => setCloudPassword(e.target.value)} autoComplete="off" />
+            </label>
+          </fieldset>
         )}
         <button className="btn primary" disabled={busy}>
           {busy ? 'Please wait…' : mode === 'setup' ? 'Create account' : mode === 'forgot' ? 'Reset password' : 'Sign in'}

@@ -22,9 +22,17 @@ declare global {
       onDownloadProgress?: (cb: (percent: number) => void) => void;
       onUpdateDownloaded?: (cb: (version: string) => void) => void;
       installUpdate?: () => Promise<void>;
+      /** True when the installer already has the Supabase project URL and anon key. */
+      cloudPreset?: boolean;
       saveCloudConfig?: (config: {
-        url: string;
-        anonKey: string;
+        url?: string;
+        anonKey?: string;
+        ownerEmail: string;
+        ownerPassword: string;
+      }) => Promise<{ ok: true } | { ok: false; error: string }>;
+      checkCloudLogin?: (config: {
+        url?: string;
+        anonKey?: string;
         ownerEmail: string;
         ownerPassword: string;
       }) => Promise<{ ok: true } | { ok: false; error: string }>;

@@ -59,6 +59,30 @@ writeFileSync(
     2,
   ),
 );
+// The Supabase project URL and anon key are put into the app at build time, so the administrator never types them.
+// Both are public by design (the phone app ships them too; Row-Level Security protects the data). The OWNER password
+// is never baked in: the installer is public. The values come from the environment or from the phone app's .env,
+// which is not committed, so they are not in the source code either.
+function loadCloudDefaults() {
+  const fromFile = (key) => {
+    try {
+      const text = readFileSync(join(root, 'apps', 'mobile', '.env'), 'utf8');
+      return (new RegExp(`^${key}=(.*)$`, 'm').exec(text)?.[1] ?? '').trim().replace(/^["']|["']$/g, '');
+    } catch {
+      return '';
+    }
+  };
+  const url = (process.env.NEOFIT_SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || fromFile('EXPO_PUBLIC_SUPABASE_URL')).trim().replace(/\/+$/, '');
+  const anonKey = (process.env.NEOFIT_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || fromFile('EXPO_PUBLIC_SUPABASE_ANON_KEY')).trim();
+  return /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) && anonKey ? { url, anonKey } : null;
+}
+const defaults = loadCloudDefaults();
+if (defaults) {
+  writeFileSync(join(stage, 'app', 'cloud-defaults.json'), JSON.stringify(defaults));
+  console.log(`Built in the Supabase project ${new URL(defaults.url).host} (URL and anon key only).`);
+} else {
+  console.warn('No Supabase URL and anon key found (set NEOFIT_SUPABASE_URL / NEOFIT_SUPABASE_ANON_KEY or fill apps/mobile/.env): the admin will have to type them.');
+}
 console.log(`Staged the app in ${stage}`);
 
 const mode = process.argv.find((a) => a === '--dir' || a === '--win');

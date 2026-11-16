@@ -37,6 +37,20 @@ function loadConfig() {
   return saved;
 }
 
+/**
+ * The Supabase project URL and anon key that were built into this installer (see scripts/stage.mjs). Both are public by
+ * design. Without them (a development run) the administrator types them in the "Connect to the cloud" form.
+ */
+function loadCloudDefaults() {
+  try {
+    const file = path.join(app.getAppPath(), 'app', 'cloud-defaults.json');
+    const d = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return { url: String(d.url || ''), anonKey: String(d.anonKey || '') };
+  } catch {
+    return { url: '', anonKey: '' };
+  }
+}
+
 /** Asks the system for a free port on this computer, so a program already using 3001 cannot stop the app. */
 function freePort() {
   return new Promise((resolve, reject) => {
@@ -57,17 +71,22 @@ function freePort() {
  */
 function startServer(port) {
   const config = loadConfig();
-  const cloud = config.cloud || {};
+  // The project URL and anon key are built into the installer; the owner's login is the part the administrator adds.
+  const defaults = loadCloudDefaults();
+  const saved = config.cloud || {};
+  const cloud = { url: saved.url || defaults.url, anonKey: saved.anonKey || defaults.anonKey, ownerEmail: saved.ownerEmail, ownerPassword: saved.ownerPassword };
+  // The server wants all four values or none, so a URL and key without the owner's login is not passed on.
+  const connected = !!(cloud.url && cloud.anonKey && cloud.ownerEmail && cloud.ownerPassword);
   const env = {
     ...process.env,
     JWT_SECRET: config.jwtSecret,
     DB_PATH: path.join(app.getPath('userData'), 'neofit.db'),
     PORT: String(port),
     CORS_ORIGINS: isDev ? DEV_URL : 'null',
-    SUPABASE_URL: cloud.url || '',
-    SUPABASE_ANON_KEY: cloud.anonKey || '',
-    SUPABASE_OWNER_EMAIL: cloud.ownerEmail || '',
-    SUPABASE_OWNER_PASSWORD: cloud.ownerPassword || '',
+    SUPABASE_URL: connected ? cloud.url : '',
+    SUPABASE_ANON_KEY: connected ? cloud.anonKey : '',
+    SUPABASE_OWNER_EMAIL: connected ? cloud.ownerEmail : '',
+    SUPABASE_OWNER_PASSWORD: connected ? cloud.ownerPassword : '',
   };
 
   let command;
@@ -133,7 +152,12 @@ async function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      additionalArguments: [`--neofit-version=${app.getVersion()}`, `--neofit-api=${apiUrl}`],
+      additionalArguments: [
+        `--neofit-version=${app.getVersion()}`,
+        `--neofit-api=${apiUrl}`,
+        // Tells the window that the project URL and anon key are built in, so the forms ask only for the owner's login.
+        `--neofit-cloud-preset=${loadCloudDefaults().url ? '1' : '0'}`,
+      ],
     },
   });
   win.setMenuBarVisibility(false);
@@ -194,8 +218,33 @@ ipcMain.handle('install-update', () => {
  * connection in the settings file (private to this user) and restarts the app so the local API picks it up.
  */
 ipcMain.handle('save-cloud-config', async (_event, input) => {
-  const url = String(input?.url ?? '').trim().replace(/\/+$/, '');
-  const anonKey = String(input?.anonKey ?? '').trim();
+  const checked = await checkCloudLogin(input);
+  if (!checked.ok) return checked;
+
+  const config = loadConfig();
+  config.cloud = checked.cloud;
+  fs.writeFileSync(path.join(app.getPath('userData'), 'neofit-config.json'), JSON.stringify(config, null, 2), { mode: 0o600 });
+  setTimeout(() => {
+    app.relaunch();
+    app.exit(0);
+  }, 800);
+  return { ok: true };
+});
+
+/** Checks an owner login against Supabase without saving anything (used by the first-run setup before it creates the account). */
+ipcMain.handle('check-cloud-login', async (_event, input) => {
+  const checked = await checkCloudLogin(input);
+  return checked.ok ? { ok: true } : checked;
+});
+
+/**
+ * Signs in to Supabase as the owner to prove the login works. The project URL and anon key come from the form when it
+ * has them, and otherwise from the installer; the administrator normally types only the email and password.
+ */
+async function checkCloudLogin(input) {
+  const defaults = loadCloudDefaults();
+  const url = String(input?.url || defaults.url || '').trim().replace(/\/+$/, '');
+  const anonKey = String(input?.anonKey || defaults.anonKey || '').trim();
   const ownerEmail = String(input?.ownerEmail ?? '').trim();
   const ownerPassword = String(input?.ownerPassword ?? '');
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) {
@@ -212,21 +261,13 @@ ipcMain.handle('save-cloud-config', async (_event, input) => {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      return { ok: false, error: `Supabase refused the sign-in: ${body.error_description || body.msg || res.status}. Check the anon key, email and password.` };
+      return { ok: false, error: `Supabase refused the sign-in: ${body.error_description || body.msg || res.status}. Check the email and password.` };
     }
   } catch (err) {
     return { ok: false, error: `Could not reach Supabase. Check the internet connection. (${err.message})` };
   }
-
-  const config = loadConfig();
-  config.cloud = { url, anonKey, ownerEmail, ownerPassword };
-  fs.writeFileSync(path.join(app.getPath('userData'), 'neofit-config.json'), JSON.stringify(config, null, 2), { mode: 0o600 });
-  setTimeout(() => {
-    app.relaunch();
-    app.exit(0);
-  }, 800);
-  return { ok: true };
-});
+  return { ok: true, cloud: { url, anonKey, ownerEmail, ownerPassword } };
+}
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

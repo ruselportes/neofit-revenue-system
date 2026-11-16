@@ -221,3 +221,7 @@ td .actions { display: flex; gap: 6px; justify-content: flex-end; }
 /* version on the sign-in page */
 .login { position: relative; }
 .login-version { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 0.75rem; color: var(--muted); opacity: 0.7; letter-spacing: 0.5px; pointer-events: none; }
+
+/* optional cloud login on the first-run setup */
+.cloud-fields { display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px 14px; margin: 0; }
+.cloud-fields legend { padding: 0 6px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }

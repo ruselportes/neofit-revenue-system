@@ -17,4 +17,8 @@ contextBridge.exposeInMainWorld('neofit', {
   installUpdate: () => ipcRenderer.invoke('install-update'),
   // Connects this computer to the Supabase project (Logbook, invites, announcements). Restarts the app on success.
   saveCloudConfig: (config) => ipcRenderer.invoke('save-cloud-config', config),
+  // Checks an owner login without saving it (first-run setup).
+  checkCloudLogin: (config) => ipcRenderer.invoke('check-cloud-login', config),
+  // True when the installer already contains the Supabase project URL and anon key.
+  cloudPreset: arg('neofit-cloud-preset') === '1',
 });
