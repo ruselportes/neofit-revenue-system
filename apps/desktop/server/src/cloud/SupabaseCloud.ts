@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 import type { DateRange } from '@neofit/core';
 import { CloudError, CloudUnavailableError } from '../errors';
 import type { RateRecord } from '../models';
@@ -27,6 +28,20 @@ const PAGE = 1000;
 const NETWORK = /fetch failed|network|ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|timed out/i;
 
 /**
+ * Makes the Supabase client. The packaged app runs this server on Electron's own Node (v20), which has no
+ * built-in WebSocket, and the Supabase library refuses to start without one ("native WebSocket not found").
+ * So the `ws` library is passed in explicitly. The desktop never uses realtime; the client just needs to exist.
+ */
+export function createCloudClient(credentials: Pick<CloudCredentials, 'url' | 'anonKey'>): SupabaseClient {
+  return createClient(credentials.url, credentials.anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    realtime: { transport: WebSocket as unknown as WebSocketLikeConstructor },
+  });
+}
+
+type WebSocketLikeConstructor = NonNullable<NonNullable<Parameters<typeof createClient>[2]>['realtime']>['transport'];
+
+/**
  * The desktop's connection to Supabase. It signs in as the owner (the credentials come from
  * configuration, never from the source code) and signs in again shortly before the session ends.
  */
@@ -40,9 +55,7 @@ export class CloudSession {
   async db(): Promise<SupabaseClient> {
     if (this.client && Date.now() < this.expiresAt - 60_000) return this.client;
 
-    const client = createClient(this.credentials.url, this.credentials.anonKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const client = createCloudClient(this.credentials);
     let result;
     try {
       result = await client.auth.signInWithPassword({
