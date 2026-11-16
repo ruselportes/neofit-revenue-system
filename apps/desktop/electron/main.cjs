@@ -125,6 +125,8 @@ async function createWindow() {
     minWidth: 960,
     minHeight: 600,
     title: 'NeoFit Revenue System',
+    icon: path.join(__dirname, 'neofit.ico'),
+    backgroundColor: '#0a0a0a',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),

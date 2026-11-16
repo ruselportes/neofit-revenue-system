@@ -1,12 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="./logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NeoFit Revenue System</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Startup splash: shown until React mounts and replaces #root content -->
+      <div style="height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0c">
+        <img src="./logo.png" alt="NeoFit Fitness Gym" style="height:140px;width:auto" />
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

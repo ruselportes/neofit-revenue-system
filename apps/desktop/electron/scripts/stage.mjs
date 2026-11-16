@@ -33,6 +33,7 @@ cpSync(server, join(stage, 'app', 'server', 'server.cjs'));
 cpSync(renderer, join(stage, 'app', 'renderer'), { recursive: true });
 cpSync(join(electronDir, 'main.cjs'), join(stage, 'main.cjs'));
 cpSync(join(electronDir, 'preload.cjs'), join(stage, 'preload.cjs'));
+cpSync(join(electronDir, 'neofit.ico'), join(stage, 'neofit.ico'));
 
 writeFileSync(
   join(stage, 'package.json'),
@@ -44,7 +45,12 @@ writeFileSync(
       author: pkg.author,
       main: 'main.cjs',
       dependencies: { 'better-sqlite3': pkg.dependencies['better-sqlite3'] },
-      build: { ...pkg.build, directories: { output: '../dist' } },
+      build: {
+        ...pkg.build,
+        directories: { output: '../dist' },
+        files: [...pkg.build.files, 'neofit.ico'],
+        win: { ...pkg.build.win, icon: 'neofit.ico' },
+      },
     },
     null,
     2,

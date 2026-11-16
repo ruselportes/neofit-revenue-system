@@ -59,11 +59,11 @@ export function loadTheme(): Theme {
   } catch {
     // storage can be unavailable
   }
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return 'dark'; // like the NeoFit Admin desktop app, dark is the default
 }
 
 export function applyTheme(theme: Theme): void {
-  document.documentElement.dataset.theme = theme;
+  document.documentElement.classList.toggle('dark', theme === 'dark');
   try {
     localStorage.setItem('neofit-theme', theme);
   } catch {

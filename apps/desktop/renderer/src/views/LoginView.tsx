@@ -3,6 +3,7 @@ import type { Api } from '../api/resources';
 import type { Session } from '../api/types';
 import { Notice } from '../components';
 import { messageOf } from '../state';
+import logoImg from '../assets/logo.png';
 
 /** Sign in, or create the administrator account the first time the app runs. */
 export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (s: Session) => void }) {
@@ -41,10 +42,7 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
   return (
     <div className="login">
       <form className="card" onSubmit={submit}>
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">N</span>
-          NeoFit
-        </div>
+        <img className="login-logo" src={logoImg} alt="NeoFit Fitness Gym" />
         <div>
           <h1>{needsSetup ? 'Create the administrator account' : 'Sign in'}</h1>
           <p className="hint">
