@@ -9,6 +9,7 @@ import type { ReportExporter } from '../reports/ReportExporter';
 import type { RevenueReport, RevenueService } from '../services/RevenueService';
 import type { SettingsService } from '../services/SettingsService';
 import { parseId } from '../util/validate';
+import type { AuthedRequest } from './middleware';
 
 /** A controller turns HTTP requests into service calls. It holds no business rules. */
 export abstract class Controller {
@@ -28,6 +29,25 @@ export class AuthController extends Controller {
     r.get('/setup/status', (_req, res) => void res.json({ needsSetup: this.auth.needsSetup() }));
     r.post('/setup', async (req, res) => {
       res.status(201).json(await this.auth.setup(req.body?.email, req.body?.password));
+    });
+    // Forgot password: the email and the recovery key set a new password.
+    r.post('/reset-password', async (req, res) => {
+      res.json(await this.auth.resetPassword(req.body?.email, req.body?.recoveryKey, req.body?.newPassword));
+    });
+    return r;
+  }
+}
+
+/** The signed-in administrator's own account. */
+export class AccountController extends Controller {
+  constructor(private readonly auth: AuthService) {
+    super();
+  }
+
+  router(): Router {
+    const r = Router();
+    r.post('/recovery-key', async (req: AuthedRequest, res) => {
+      res.status(201).json(await this.auth.issueRecoveryKey(req.user?.sub, req.body?.password));
     });
     return r;
   }

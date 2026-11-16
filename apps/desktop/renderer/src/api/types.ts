@@ -111,4 +111,11 @@ export interface Session {
   token: string;
   email: string;
   role: string;
+  /** False until the administrator has made a recovery key. */
+  hasRecoveryKey: boolean;
+}
+
+/** A session together with a recovery key that is shown once. */
+export interface SessionWithKey extends Session {
+  recoveryKey: string;
 }

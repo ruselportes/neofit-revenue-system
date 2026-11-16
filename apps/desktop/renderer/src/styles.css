@@ -198,3 +198,22 @@ td .actions { display: flex; gap: 6px; justify-content: flex-end; }
 .update-line { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
 .update-track { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
 .update-track > div { height: 100%; background: linear-gradient(90deg, var(--primary), #38bdf8); border-radius: 3px; transition: width 0.3s ease; }
+
+/* password box with show/hide button */
+.password-wrap { position: relative; }
+.password-wrap .input { padding-right: 2.8rem; }
+.password-toggle { position: absolute; top: 0; right: 0; height: 100%; width: 2.8rem; display: grid; place-items: center; border: 0; background: transparent; color: var(--muted); cursor: pointer; border-radius: 0 8px 8px 0; }
+.password-toggle:hover { color: var(--text); }
+
+/* recovery key */
+.recovery-key { font-family: ui-monospace, Consolas, 'Courier New', monospace; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.08em; text-align: center; padding: 1rem; border: 1px dashed var(--primary); border-radius: 8px; background: var(--primary-soft); user-select: all; word-break: break-all; }
+.recovery-actions { display: flex; gap: 8px; justify-content: center; }
+.check { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; }
+.check input { width: 18px; height: 18px; accent-color: var(--primary); }
+.key-input { font-family: ui-monospace, Consolas, 'Courier New', monospace; letter-spacing: 0.06em; text-transform: uppercase; }
+.link { border: 0; background: none; color: var(--primary); font-weight: 600; cursor: pointer; text-align: center; padding: 0; }
+:root.dark .link { color: #60a5fa; }
+.link:hover { text-decoration: underline; }
+.foot-btn.attention { color: var(--warn); }
+.foot-btn.attention .nav-icon { animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }

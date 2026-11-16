@@ -11,6 +11,7 @@ import type {
   Rate,
   RevenueReport,
   Session,
+  SessionWithKey,
 } from './types';
 
 /** One class per area of the API, so views never build URLs themselves. */
@@ -23,8 +24,16 @@ export class AuthApi {
   login(email: string, password: string): Promise<Session> {
     return this.http.post('/api/login', { email, password });
   }
-  setup(email: string, password: string): Promise<Session> {
+  setup(email: string, password: string): Promise<SessionWithKey> {
     return this.http.post('/api/setup', { email, password });
+  }
+  /** Forgot password: the recovery key sets a new password and is replaced by a new key. */
+  resetPassword(email: string, recoveryKey: string, newPassword: string): Promise<SessionWithKey> {
+    return this.http.post('/api/reset-password', { email, recoveryKey, newPassword });
+  }
+  /** Makes a new recovery key for the signed-in administrator (the old one stops working). */
+  newRecoveryKey(password: string): Promise<{ recoveryKey: string }> {
+    return this.http.post('/api/recovery-key', { password });
   }
 }
 

@@ -47,6 +47,8 @@ export interface UserRecord {
   id: number;
   email: string;
   passwordHash: string;
+  /** Hash of the recovery key; null until the administrator has one. */
+  recoveryHash: string | null;
   role: string;
 }
 

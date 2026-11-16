@@ -4,6 +4,7 @@ import type { Container } from '../Container';
 import { WordRevenueReport } from '../reports/WordRevenueReport';
 import { formatDate } from '../util/dates';
 import {
+  AccountController,
   AuthController,
   CloudController,
   MemberController,
@@ -26,6 +27,7 @@ export function createApp(c: Container): Express {
   const protectedApi = express.Router();
   protectedApi.use(requireAuth(c.tokens));
   for (const controller of [
+    new AccountController(c.auth),
     new MemberController(c.members),
     new CloudController(
       {

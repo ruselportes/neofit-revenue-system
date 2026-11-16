@@ -1,6 +1,82 @@
-import { useEffect, useId, type ReactNode } from 'react';
+import { useEffect, useId, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import type { MemberStatus } from './api/types';
+import { saveFile } from './download';
 import { formatPeso } from './format';
+
+/** A password box with an eye button that shows or hides what is typed. */
+export function PasswordInput(props: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="password-wrap">
+      <input {...props} className="input" type={shown ? 'text' : 'password'} />
+      <button
+        type="button"
+        className="password-toggle"
+        onClick={() => setShown((s) => !s)}
+        aria-label={shown ? 'Hide password' : 'Show password'}
+        aria-pressed={shown}
+        title={shown ? 'Hide password' : 'Show password'}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          {shown ? (
+            <>
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+              <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+              <line x1="1" y1="1" x2="23" y2="23" />
+            </>
+          ) : (
+            <>
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </>
+          )}
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Shows a recovery key once, with ways to keep it (copy, save as a file, print). `onDone` runs only after
+ * the administrator ticks that the key is saved, because the key cannot be shown again.
+ */
+export function RecoveryKeyPanel({ recoveryKey, doneLabel, onDone }: { recoveryKey: string; doneLabel: string; onDone: () => void }) {
+  const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(recoveryKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // the clipboard can be blocked; the key is on screen and in the saved file
+    }
+  };
+  const download = () =>
+    saveFile(
+      new Blob([`NeoFit Revenue System - recovery key\r\n\r\n${recoveryKey}\r\n\r\nKeep this where only the owner can find it.\r\nIt lets you set a new administrator password if you forget it. Each key works once.\r\n`], { type: 'text/plain' }),
+      'neofit-recovery-key.txt',
+    );
+
+  return (
+    <>
+      <div className="recovery-key" aria-label="Recovery key">{recoveryKey}</div>
+      <div className="recovery-actions">
+        <button type="button" className="btn small" onClick={() => void copy()}>{copied ? 'Copied' : 'Copy'}</button>
+        <button type="button" className="btn small" onClick={download}>Save as file</button>
+        <button type="button" className="btn small" onClick={() => window.print()}>Print</button>
+      </div>
+      <Notice>Anyone with this key can reset the administrator password. Keep it safe. It is shown only once.</Notice>
+      <label className="check">
+        <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} />
+        <span>I saved my recovery key</span>
+      </label>
+      <button type="button" className="btn primary" disabled={!saved} onClick={onDone}>{doneLabel}</button>
+    </>
+  );
+}
 
 export function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (

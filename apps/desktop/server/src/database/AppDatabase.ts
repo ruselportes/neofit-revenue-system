@@ -96,5 +96,11 @@ export class AppDatabase {
         attempts INTEGER NOT NULL DEFAULT 0
       );
     `);
+
+    // Databases made before the recovery key existed get the new column.
+    const userColumns = this.connection.prepare("SELECT name FROM pragma_table_info('users')").all() as Array<{ name: string }>;
+    if (!userColumns.some((c) => c.name === 'recovery_hash')) {
+      this.connection.exec('ALTER TABLE users ADD COLUMN recovery_hash TEXT');
+    }
   }
 }

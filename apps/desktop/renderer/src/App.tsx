@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { Modal, Notice, PasswordInput, RecoveryKeyPanel } from './components';
 import logoImg from './assets/logo.png';
 import { ApiClient } from './api/ApiClient';
 import { Api } from './api/resources';
@@ -137,6 +138,47 @@ const NAV: Array<{ view: ViewName; label: string; icon: ReactNode }> = [
   },
 ];
 
+/** Makes a new recovery key for the signed-in administrator. The current password confirms who is asking. */
+function RecoveryKeyDialog({ api, onClose, onIssued }: { api: Api; onClose: () => void; onIssued: () => void }) {
+  const [password, setPassword] = useState('');
+  const [key, setKey] = useState<string | null>(null);
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+
+  const make = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(undefined);
+    setBusy(true);
+    try {
+      setKey((await api.auth.newRecoveryKey(password)).recoveryKey);
+      onIssued();
+    } catch (err) {
+      setError(messageOf(err));
+    }
+    setBusy(false);
+  };
+
+  return (
+    <Modal title="Recovery key" onClose={onClose}>
+      {key ? (
+        <RecoveryKeyPanel recoveryKey={key} doneLabel="Done" onDone={onClose} />
+      ) : (
+        <form className="form" onSubmit={make}>
+          <p className="hint">
+            The recovery key lets you set a new password if you forget it. Making a new key replaces the old one, so save the new key somewhere safe.
+          </p>
+          {error && <Notice kind="error">{error}</Notice>}
+          <label className="field">
+            <span>Your current password</span>
+            <PasswordInput autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required autoFocus />
+          </label>
+          <button className="btn primary" disabled={busy}>{busy ? 'Please wait…' : 'Make a new recovery key'}</button>
+        </form>
+      )}
+    </Modal>
+  );
+}
+
 export default function App() {
   const client = useMemo(() => new ApiClient(API_URL), []);
   const api = useMemo(() => new Api(client), [client]);
@@ -144,6 +186,7 @@ export default function App() {
   const [view, setView] = useState<ViewName>('dashboard');
   const [openForm, setOpenForm] = useState(false);
   const [theme, setTheme] = useState<Theme>(loadTheme);
+  const [keyDialog, setKeyDialog] = useState(false);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
       return localStorage.getItem('neofit-sidebar-collapsed') === 'true';
@@ -230,6 +273,21 @@ export default function App() {
               </span>
               <span className="nav-label">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
+            <button
+              className={`foot-btn ${session.hasRecoveryKey ? '' : 'attention'}`}
+              onClick={() => setKeyDialog(true)}
+              title={session.hasRecoveryKey ? 'Make a new recovery key' : 'No recovery key yet: make one so a forgotten password can be reset'}
+            >
+              <span className="nav-icon">
+                <Icon>
+                  <circle cx="7.5" cy="15.5" r="4.5" />
+                  <path d="M10.7 12.3 21 2" />
+                  <path d="m17 6 3 3" />
+                  <path d="m14 9 2 2" />
+                </Icon>
+              </span>
+              <span className="nav-label">{session.hasRecoveryKey ? 'Recovery key' : 'Set recovery key'}</span>
+            </button>
             <button className="foot-btn" onClick={signOut} title={collapsed ? `Sign out (${session.email})` : session.email}>
               <span className="nav-icon">
                 <Icon>
@@ -251,6 +309,13 @@ export default function App() {
           {view === 'rates' && <RatesView />}
         </main>
         <UpdateBanner />
+        {keyDialog && (
+          <RecoveryKeyDialog
+            api={api}
+            onClose={() => setKeyDialog(false)}
+            onIssued={() => setSession((s) => (s ? { ...s, hasRecoveryKey: true } : s))}
+          />
+        )}
       </div>
     </AppContext.Provider>
   );
