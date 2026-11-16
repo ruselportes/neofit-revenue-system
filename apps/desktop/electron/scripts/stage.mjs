@@ -44,7 +44,10 @@ writeFileSync(
       description: pkg.description,
       author: pkg.author,
       main: 'main.cjs',
-      dependencies: { 'better-sqlite3': pkg.dependencies['better-sqlite3'] },
+      dependencies: {
+        'better-sqlite3': pkg.dependencies['better-sqlite3'],
+        'electron-updater': pkg.dependencies['electron-updater'],
+      },
       build: {
         ...pkg.build,
         directories: { output: '../dist' },

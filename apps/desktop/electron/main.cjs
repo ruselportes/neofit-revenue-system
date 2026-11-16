@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const { spawn } = require('node:child_process');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -149,8 +149,45 @@ async function createWindow() {
   });
 
   if (isDev) await win.loadURL(DEV_URL);
-  else await win.loadFile(path.join(app.getAppPath(), 'app', 'renderer', 'index.html'));
+  else {
+    await win.loadFile(path.join(app.getAppPath(), 'app', 'renderer', 'index.html'));
+    startUpdater(win);
+  }
 }
+
+let autoUpdater = null;
+
+/**
+ * Checks GitHub Releases for a newer version a few seconds after start (packaged builds only),
+ * downloads it in the background and tells the window, which offers "Restart now".
+ */
+function startUpdater(win) {
+  try {
+    ({ autoUpdater } = require('electron-updater'));
+  } catch (err) {
+    console.warn('[updater] electron-updater is not available:', err.message);
+    return;
+  }
+  const send = (channel, payload) => {
+    if (!win.isDestroyed()) win.webContents.send(channel, payload);
+  };
+  autoUpdater.logger = {
+    info: (m) => console.log('[updater]', m),
+    warn: (m) => console.warn('[updater]', m),
+    error: (m) => console.error('[updater]', m),
+  };
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('update-available', (info) => send('update-available', info.version));
+  autoUpdater.on('download-progress', (p) => send('download-progress', { percent: Math.round(p.percent) }));
+  autoUpdater.on('update-downloaded', (info) => send('update-downloaded', info.version));
+  autoUpdater.on('error', (err) => console.error('[updater] error:', err.message));
+  setTimeout(() => autoUpdater.checkForUpdates().catch((err) => console.error('[updater] check failed:', err.message)), 3000);
+}
+
+ipcMain.handle('install-update', () => {
+  if (autoUpdater) autoUpdater.quitAndInstall();
+});
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

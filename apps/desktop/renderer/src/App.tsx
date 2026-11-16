@@ -14,8 +14,55 @@ import RevenueView from './views/RevenueView';
 declare global {
   interface Window {
     /** Provided by the Electron preload script; absent in a plain browser. */
-    neofit?: { version: string; apiUrl?: string };
+    neofit?: {
+      version: string;
+      apiUrl?: string;
+      onUpdateAvailable?: (cb: (version: string) => void) => void;
+      onDownloadProgress?: (cb: (percent: number) => void) => void;
+      onUpdateDownloaded?: (cb: (version: string) => void) => void;
+      installUpdate?: () => Promise<void>;
+    };
   }
+}
+
+/** Shows the download progress of a new version and, once it is ready, offers to restart into it. */
+function UpdateBanner() {
+  const [downloading, setDownloading] = useState<{ version: string; percent: number } | null>(null);
+  const [ready, setReady] = useState<string | null>(null);
+
+  useEffect(() => {
+    const n = window.neofit;
+    n?.onUpdateAvailable?.((version) => setDownloading({ version, percent: 0 }));
+    n?.onDownloadProgress?.((percent) => setDownloading((d) => (d ? { ...d, percent } : d)));
+    n?.onUpdateDownloaded?.((version) => {
+      setDownloading(null);
+      setReady(version);
+    });
+  }, []);
+
+  if (ready) {
+    return (
+      <div className="update-toast ready" role="status">
+        <span>Update v{ready} ready</span>
+        <button onClick={() => void window.neofit?.installUpdate?.()}>Restart now</button>
+        <button className="x" onClick={() => setReady(null)} aria-label="Dismiss">
+          &times;
+        </button>
+      </div>
+    );
+  }
+  if (!downloading) return null;
+  return (
+    <div className="update-toast" role="status">
+      <div className="update-line">
+        <span>Updating to v{downloading.version}…</span>
+        <span>{downloading.percent}%</span>
+      </div>
+      <div className="update-track">
+        <div style={{ width: `${downloading.percent}%` }} />
+      </div>
+    </div>
+  );
 }
 
 // The desktop shell tells the app which port the local API chose; a plain browser uses the default.
@@ -203,6 +250,7 @@ export default function App() {
           {view === 'revenue' && <RevenueView />}
           {view === 'rates' && <RatesView />}
         </main>
+        <UpdateBanner />
       </div>
     </AppContext.Provider>
   );

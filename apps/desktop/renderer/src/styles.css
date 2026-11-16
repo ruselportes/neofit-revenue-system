@@ -189,3 +189,12 @@ td .actions { display: flex; gap: 6px; justify-content: flex-end; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* update banner (same look as the NeoFit Admin app) */
+.update-toast { position: fixed; right: 20px; bottom: 20px; z-index: 10000; min-width: 280px; padding: 1rem 1.5rem; border-radius: 10px; background: var(--card); border: 1px solid var(--border); color: var(--text); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; gap: 0.6rem; font-weight: 600; font-size: 0.9rem; }
+.update-toast.ready { flex-direction: row; align-items: center; gap: 0.75rem; background: linear-gradient(135deg, #00e5a0, #00b88a); color: #0a0a0c; border: 0; box-shadow: 0 4px 16px rgba(0, 229, 160, 0.3); }
+.update-toast.ready button { background: #0a0a0c; color: #00e5a0; border: 0; padding: 0.4rem 1rem; border-radius: 6px; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+.update-toast.ready button.x { background: transparent; color: #0a0a0c; padding: 0.4rem; font-size: 1.1rem; line-height: 1; }
+.update-line { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+.update-track { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.update-track > div { height: 100%; background: linear-gradient(90deg, var(--primary), #38bdf8); border-radius: 3px; transition: width 0.3s ease; }

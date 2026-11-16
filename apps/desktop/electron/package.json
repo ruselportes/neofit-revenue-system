@@ -14,7 +14,8 @@
     "electron-builder": "^25.1.8"
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0"
+    "better-sqlite3": "^11.10.0",
+    "electron-updater": "^6.8.11"
   },
   "description": "NeoFit Revenue System desktop app",
   "author": "NeoFit Revenue System team",
@@ -34,6 +35,12 @@
       "**/node_modules/better-sqlite3/**"
     ],
     "npmRebuild": true,
+    "artifactName": "NeoFit-Revenue-System-Setup-${version}.${ext}",
+    "publish": {
+      "provider": "github",
+      "owner": "ruselportes",
+      "repo": "neofit-revenue-system"
+    },
     "win": {
       "target": [
         "nsis"
@@ -42,7 +49,10 @@
     "nsis": {
       "oneClick": false,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NeoFit Revenue System"
     },
     "electronVersion": "33.4.11"
   }
