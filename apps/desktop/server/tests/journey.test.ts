@@ -130,7 +130,7 @@ describe('a day at NeoFit, end to end', () => {
 
   it('6. a payment already written in the logbook is counted once; one that is not is added', async () => {
     const add = (name: string) =>
-      api.request('POST', '/api/members', { name, contact: '0917', plan: 'Regular Plan - Monthly (No Treadmill)', email: `${name.split(' ')[0]!.toLowerCase()}@example.com` }, token);
+      api.request('POST', '/api/members', { name, contact: '09171234567', plan: 'Regular Plan - Monthly (No Treadmill)', email: `${name.split(' ')[0]!.toLowerCase()}@example.com` }, token);
     // Revenue keeps the logbook it read for 60 seconds (step 3 read it before the page arrived), so a minute passes.
     api.clock.date = new Date(2026, 10, 4, 10, 2, 0);
 

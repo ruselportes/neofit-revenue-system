@@ -250,8 +250,8 @@ describe('revenue with logbook pages', () => {
     });
     try {
       const token = await api.login();
-      await api.request('POST', '/api/members', { name: 'Rose Garcia', contact: '0917', plan: 'Regular Plan - Monthly (No Treadmill)' }, token);
-      await api.request('POST', '/api/members', { name: 'Ian', contact: '0918', plan: 'Regular Plan - Monthly (No Treadmill)' }, token);
+      await api.request('POST', '/api/members', { name: 'Rose Garcia', contact: '09171234567', plan: 'Regular Plan - Monthly (No Treadmill)' }, token);
+      await api.request('POST', '/api/members', { name: 'Ian', contact: '09181234567', plan: 'Regular Plan - Monthly (No Treadmill)' }, token);
       const res = await api.request('GET', '/api/revenue?year=2026&month=11', undefined, token);
       expect(res.body.logbookTotal).toBe(770);
       expect(res.body.paymentsTotal).toBe(700); // Rose is in the logbook; only Ian is added

@@ -4,6 +4,7 @@ import { Modal, Notice, StatusBadge } from '../components';
 import { formatDate, formatPeso, todayText } from '../format';
 import { CATEGORIES, PERIODS, TREADMILL, parsePlan, planText, priceOf, type PlanChoice } from '../plan';
 import { messageOf, useApp, useAsync } from '../state';
+import { cleanContact, cleanName, contactProblem, nameProblem } from '../validation';
 
 const STATUSES: Array<MemberStatus | 'All'> = ['All', 'Active', 'Expiring Soon', 'Expired', 'Pending'];
 const MAX_PHOTO_BYTES = 1_500_000;
@@ -173,9 +174,12 @@ function MemberForm({ member, rates, onClose, onSaved }: { member?: Member; rate
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError(undefined);
+    const cleanedName = name.trim().replace(/\s+/g, ' ');
+    const problem = nameProblem(cleanedName) ?? contactProblem(contact);
+    if (problem) return setError(problem);
     setBusy(true);
     try {
-      const common = { name, contact, email, address, plan: planText(plan), ...(photo ? { photo } : {}) };
+      const common = { name: cleanedName, contact: contact.trim(), email, address, plan: planText(plan), ...(photo ? { photo } : {}) };
       if (editing) {
         await api.members.update(member.id, { ...common, joinedDate: joined });
         onSaved(`${name} was updated.`);
@@ -198,8 +202,24 @@ function MemberForm({ member, rates, onClose, onSaved }: { member?: Member; rate
       <form className="form" onSubmit={submit}>
         {error && <Notice kind="error">{error}</Notice>}
         <div className="grid-2">
-          <label className="field"><span>Full name</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} required autoFocus /></label>
-          <label className="field"><span>Contact number</span><input className="input" value={contact} onChange={(e) => setContact(e.target.value)} required /></label>
+          <label className="field">
+            <span>Full name</span>
+            <input className="input" value={name} onChange={(e) => setName(cleanName(e.target.value))} maxLength={100} autoComplete="off" required autoFocus />
+          </label>
+          <label className="field">
+            <span>Contact number</span>
+            <input
+              className="input"
+              type="tel"
+              inputMode="tel"
+              placeholder="0917 123 4567"
+              value={contact}
+              onChange={(e) => setContact(cleanContact(e.target.value))}
+              maxLength={20}
+              autoComplete="off"
+              required
+            />
+          </label>
         </div>
         <div className="grid-2">
           <label className="field">

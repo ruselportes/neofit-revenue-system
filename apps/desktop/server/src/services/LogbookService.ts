@@ -3,7 +3,7 @@ import { LogbookEntry, Money, ValidationError, type DateRange, type IClock, type
 import type { CloudEntry, CloudUpload, ICloudLogbook, NewCloudEntry } from '../cloud/ports';
 import { CloudUnavailableError, NotFoundError } from '../errors';
 import type { LogbookBackupRepository } from '../repositories/LogbookBackupRepository';
-import { isDateText } from '../util/dates';
+import { formatDate, isDateText } from '../util/dates';
 import { Body } from '../util/validate';
 import type { ILogbookRecords } from './RevenueService';
 
@@ -123,6 +123,8 @@ export class LogbookService implements ILogbookRecords {
     const body = new Body(raw);
     const date = body.string('date', 10);
     this.requireDate(date);
+    // A page is written after the payments happen, so a date that has not arrived yet is a mistake.
+    if (date > formatDate(this.clock.now())) throw new ValidationError('The logbook date cannot be in the future.');
     const list = body.array('entries');
     if (list.length === 0 || list.length > MAX_ENTRIES_PER_REQUEST) {
       throw new ValidationError(`Send between 1 and ${MAX_ENTRIES_PER_REQUEST} entries.`);

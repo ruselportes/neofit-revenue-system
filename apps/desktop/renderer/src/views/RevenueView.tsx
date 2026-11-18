@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { saveFile } from '../download';
 import { BarChart, Notice, StatCard } from '../components';
 import { formatPeso, monthName, percentText, shiftMonth } from '../format';
+import { isFutureMonth } from '../validation';
 import { messageOf, useApp, useAsync } from '../state';
 
 type Series = 'revenue' | 'logbook' | 'payments';
@@ -16,6 +17,9 @@ export default function RevenueView() {
   const { api } = useApp();
   const now = new Date();
   const [period, setPeriod] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 });
+  // Revenue cannot exist in a month that has not started, so the arrow stops at the current month.
+  const next = shiftMonth(period.year, period.month, 1);
+  const atCurrentMonth = isFutureMonth(next.year, next.month, now);
   const [series, setSeries] = useState<Series>('revenue');
   const report = useAsync(() => api.revenue.month(period.year, period.month), [api, period.year, period.month]);
   const r = report.data;
@@ -58,7 +62,13 @@ export default function RevenueView() {
             ‹
           </button>
           <strong aria-live="polite">{monthName(period.year, period.month)}</strong>
-          <button className="btn small" aria-label="Next month" onClick={() => setPeriod(shiftMonth(period.year, period.month, 1))}>
+          <button
+            className="btn small"
+            aria-label="Next month"
+            title={atCurrentMonth ? 'This is the current month' : undefined}
+            disabled={atCurrentMonth}
+            onClick={() => setPeriod(shiftMonth(period.year, period.month, 1))}
+          >
             ›
           </button>
         </div>

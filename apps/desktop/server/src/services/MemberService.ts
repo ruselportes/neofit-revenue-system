@@ -69,8 +69,8 @@ export class MemberService {
     const { member, payment } = this.database.transaction(() => {
       const created = this.members.insert({
         memberId: this.members.nextMemberId(),
-        name: body.string('name', 100),
-        contact: body.string('contact', 20),
+        name: body.personName('name', 100),
+        contact: body.contactNumber('contact', 20),
         email: body.optionalEmail('email') ?? null,
         plan,
         status: MemberStatusPolicy.statusFor(start, coverage.end, this.today()),
@@ -96,8 +96,8 @@ export class MemberService {
     const expiryDate = body.optionalDate('expiryDate') ?? current.expiryDate;
 
     this.members.update(id, {
-      name: body.has('name') ? body.string('name', 100) : current.name,
-      contact: body.has('contact') ? body.string('contact', 20) : current.contact,
+      name: body.has('name') ? body.personName('name', 100) : current.name,
+      contact: body.has('contact') ? body.contactNumber('contact', 20) : current.contact,
       email: body.has('email') ? (body.optionalEmail('email') ?? null) : current.email,
       plan,
       status: MemberStatusPolicy.statusFor(joinedDate, expiryDate, this.today()),

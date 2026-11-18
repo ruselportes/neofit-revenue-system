@@ -3,6 +3,7 @@ import type { DayTotal, LogbookRow } from '../api/types';
 import { ConfirmDialog, Modal, Notice } from '../components';
 import { formatDate, formatPeso, monthName, shiftMonth, todayText } from '../format';
 import { messageOf, useApp, useAsync } from '../state';
+import { isFutureMonth } from '../validation';
 import { CloudGate } from './CloudGate';
 
 export default function LogbookView() {
@@ -42,8 +43,12 @@ function LogbookBody() {
     totals.reload();
   };
 
+  const today = todayText();
+  const nextMonth = shiftMonth(month.year, month.month, 1);
+  const atCurrentMonth = isFutureMonth(nextMonth.year, nextMonth.month);
+
   const pick = (value: string) => {
-    if (!value) return;
+    if (!value || value > today) return; // the logbook only has days that have happened
     setDate(value);
     const [y, m] = value.split('-').map(Number);
     if (y !== month.year || m !== month.month) setMonth({ year: y!, month: m! });
@@ -58,9 +63,17 @@ function LogbookBody() {
             <div className="month-nav">
               <button className="btn small" aria-label="Previous month" onClick={() => setMonth(shiftMonth(month.year, month.month, -1))}>‹</button>
               <strong aria-live="polite">{monthName(month.year, month.month)}</strong>
-              <button className="btn small" aria-label="Next month" onClick={() => setMonth(shiftMonth(month.year, month.month, 1))}>›</button>
+              <button
+                className="btn small"
+                aria-label="Next month"
+                title={atCurrentMonth ? 'This is the current month' : undefined}
+                disabled={atCurrentMonth}
+                onClick={() => setMonth(nextMonth)}
+              >
+                ›
+              </button>
             </div>
-            <input className="input" style={{ maxWidth: 160 }} type="date" aria-label="Date" value={date} onChange={(e) => pick(e.target.value)} />
+            <input className="input" style={{ maxWidth: 160 }} type="date" aria-label="Date" value={date} max={today} onChange={(e) => pick(e.target.value)} />
           </div>
           {totals.error && <Notice kind="error">{totals.error}</Notice>}
           <Calendar year={month.year} month={month.month} selected={date} totals={totals.data ?? []} onPick={setDate} />
@@ -165,12 +178,14 @@ function Calendar({ year, month, selected, totals, onPick }: { year: number; mon
             aria-selected={isSelected}
             aria-label={`${formatDate(text)}${t ? `, ${t.count} entries, ${formatPeso(t.total)}` : ', no entries'}`}
             onClick={() => onPick(text)}
+            disabled={text > today}
             style={{
+              opacity: text > today ? 0.4 : 1,
               border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
               background: isSelected ? 'var(--primary-soft)' : t ? 'var(--surface-2)' : 'var(--surface)',
               borderRadius: 8,
               padding: '6px 2px',
-              cursor: 'pointer',
+              cursor: text > today ? 'not-allowed' : 'pointer',
               minHeight: 52,
               outline: text === today ? '1px dashed var(--muted)' : undefined,
             }}

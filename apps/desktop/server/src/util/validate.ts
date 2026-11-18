@@ -1,6 +1,28 @@
 import { ValidationError } from '@neofit/core';
 import { isDateText } from './dates';
 
+/**
+ * A person's name: letters of any language, spaces, and . ' - (as in "Dela Cruz Jr.", "O'Neil", "Ma-an"). No digits or symbols.
+ * Returns the problem as text, or null when the name is fine. The desktop screen uses the same rule (renderer/src/validation.ts).
+ */
+export function nameProblem(name: string): string | null {
+  const letters = name.match(/\p{L}/gu)?.length ?? 0;
+  if (letters < 2) return 'Name must have at least 2 letters.';
+  if (!/^[\p{L}\p{M}][\p{L}\p{M} .'’-]*$/u.test(name)) return 'Name can only have letters, spaces and . \' - (no numbers or symbols).';
+  return null;
+}
+
+/**
+ * A contact number: digits, with an optional leading + and spaces, dashes or brackets between them (09171234567,
+ * +63 917 123 4567, (082) 123-4567). Between 7 and 15 digits. No letters.
+ */
+export function contactProblem(contact: string): string | null {
+  if (!/^[+(]?[0-9][0-9 ()-]*$/.test(contact)) return 'Contact number can only have digits, spaces, dashes and brackets (and a + at the start).';
+  const digits = contact.replace(/\D/g, '').length;
+  if (digits < 7 || digits > 15) return 'Contact number must have 7 to 15 digits.';
+  return null;
+}
+
 /** Reads and checks fields of a request body. Every failure is a ValidationError (HTTP 400). */
 export class Body {
   private readonly data: Record<string, unknown>;
@@ -20,6 +42,22 @@ export class Body {
     const v = this.data[key];
     if (typeof v !== 'string' || v.trim().length === 0) throw new ValidationError(`${key} is required.`);
     return this.limit(key, v.trim(), max);
+  }
+
+  /** A required person name (see nameProblem). */
+  personName(key: string, max: number): string {
+    const v = this.string(key, max).replace(/\s+/g, ' '); // "Ian   Reyes" is stored as "Ian Reyes"
+    const problem = nameProblem(v);
+    if (problem) throw new ValidationError(problem);
+    return v;
+  }
+
+  /** A required contact number (see contactProblem). */
+  contactNumber(key: string, max: number): string {
+    const v = this.string(key, max);
+    const problem = contactProblem(v);
+    if (problem) throw new ValidationError(problem);
+    return v;
   }
 
   optionalString(key: string, max: number): string | undefined {
