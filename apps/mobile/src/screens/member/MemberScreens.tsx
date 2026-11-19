@@ -4,10 +4,12 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MembershipSummary, type ReceiptData } from '@neofit/core';
 import { dateOfIso, longDate, pesoText, shortDate, todayText } from '../../format';
+import { dateTile } from '../../historyView';
+import { currentPaymentId, groupByYear, periodRemaining, renewalPrice, splitPlan } from '../../memberView';
 import type { MemberStackParams } from '../../navigation/types';
 import { confirmAsync, notify } from '../../platform/confirm';
 import { messageOf, useAsync, useAuthState, useServices } from '../../state';
-import { Badge, Body, Button, Card, Loading, Notice, Row, Screen, StatusTone, Title, colors } from '../../ui';
+import { Badge, Body, Button, Card, GroupHeader, Loading, Notice, PageRow, Row, Screen, StatusTone, Title, colors, statusColor } from '../../ui';
 
 function useMemberAccountId(): string {
   const state = useAuthState();
@@ -23,8 +25,14 @@ export function MemberHomeScreen() {
   const accountId = useMemberAccountId();
   const initial = state.kind === 'member' ? state.account : null;
   const data = useAsync(async () => {
-    const [account, payments, news] = await Promise.all([members.accountById(accountId), members.payments(accountId), members.announcements()]);
-    return { account: account ?? initial, last: payments[0] ?? null, news: news[0] ?? null };
+    // The rates are only for the renewal price; if they cannot be loaded, Home simply leaves the price out.
+    const [account, payments, news, rates] = await Promise.all([
+      members.accountById(accountId),
+      members.payments(accountId),
+      members.announcements(),
+      members.rates().catch(() => []),
+    ]);
+    return { account: account ?? initial, last: payments[0] ?? null, news: news[0] ?? null, rates };
   }, [accountId]);
 
   // Turn on reminders once, quietly: a refusal or an emulator only means the Home notice has to do.
@@ -34,8 +42,14 @@ export function MemberHomeScreen() {
 
   const account = data.data?.account ?? initial;
   if (!account) return <Screen><Loading variant="page" /></Screen>;
-  const summary = new MembershipSummary(account.joinedDate, account.expiryDate, todayText());
+  const today = todayText();
+  const summary = new MembershipSummary(account.joinedDate, account.expiryDate, today);
   const status = summary.status;
+  // One colour for the whole countdown, so it never disagrees with the badge: green, amber or red.
+  const tone = statusColor(status);
+  const plan = splitPlan(account.plan);
+  const remaining = periodRemaining(account, data.data?.last ?? null, today);
+  const price = summary.needsRenewalNotice ? renewalPrice(account.plan, data.data?.rates ?? []) : null;
 
   return (
     <Screen brand onRefresh={data.reload} refreshing={data.loading}>
@@ -44,25 +58,28 @@ export function MemberHomeScreen() {
 
       <Card>
         <Row>
-          <View style={{ flex: 1 }}>
-            <Body strong>{account.plan}</Body>
-            <Body muted>{account.memberId}</Body>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>{plan.title}</Text>
+            {plan.detail ? <Body muted>{plan.detail}</Body> : null}
+            <Text style={{ color: colors.muted, fontSize: 13 }}>{account.memberId}</Text>
           </View>
           <Badge tone={StatusTone(status)} text={status} />
         </Row>
         <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-          <Text accessibilityLabel={`${summary.daysLeft} days left`} style={{ color: colors.accent, fontSize: 64, fontWeight: '800' }}>{summary.daysLeft}</Text>
+          <Text accessibilityLabel={`${summary.daysLeft} days left`} style={{ color: tone, fontSize: 64, fontWeight: '800' }}>{summary.daysLeft}</Text>
           <Body muted>{summary.daysLeft === 1 ? 'day left' : 'days left'}</Body>
         </View>
-        <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(summary.progress * 100) }} style={{ height: 8, backgroundColor: colors.surface2, borderRadius: 999, overflow: 'hidden' }}>
-          <View style={{ width: `${summary.progress * 100}%`, height: '100%', backgroundColor: status === 'Expired' ? colors.danger : colors.accent }} />
+        {/* The bar is the time left in the current period, so it shrinks as the plan runs out. */}
+        <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(remaining * 100) }} style={{ height: 8, backgroundColor: colors.surface2, borderRadius: 999, overflow: 'hidden' }}>
+          <View style={{ width: `${remaining * 100}%`, height: '100%', backgroundColor: tone }} />
         </View>
         <Row><Body muted>Plan ends</Body><Body strong>{longDate(account.expiryDate)}</Body></Row>
       </Card>
 
       {summary.needsRenewalNotice ? (
-        <Notice kind="warn">
-          {status === 'Expired' ? 'Your plan has ended.' : 'Your plan ends soon.'} Please renew at the NeoFit front desk on your next visit. Payments are not made in this app.
+        <Notice kind={status === 'Expired' ? 'error' : 'warn'}>
+          {status === 'Expired' ? 'Your plan has ended.' : 'Your plan ends soon.'} Please renew at the NeoFit front desk on your next visit
+          {price === null ? '.' : `: ${pesoText(price)}.`} Payments are not made in this app.
         </Notice>
       ) : null}
 
@@ -94,6 +111,8 @@ export function MemberPaymentsScreen() {
   const payments = useAsync(() => members.payments(accountId), [accountId]);
   const year = todayText().slice(0, 4);
   const thisYear = (payments.data ?? []).filter((p) => dateOfIso(p.paidAt).startsWith(year));
+  const groups = groupByYear(payments.data ?? []);
+  const currentId = currentPaymentId(payments.data ?? [], todayText());
 
   return (
     <Screen brand onRefresh={payments.reload} refreshing={payments.loading}>
@@ -106,14 +125,22 @@ export function MemberPaymentsScreen() {
         </Card>
       ) : null}
       {payments.data?.length === 0 ? <Body muted>No payments yet.</Body> : null}
-      {payments.data?.map((p) => (
-        <Pressable key={p.id} accessibilityRole="button" onPress={() => navigation.navigate('Receipt', { paymentId: p.id })}>
-          <Card>
-            <Row><Body strong>{shortDate(dateOfIso(p.paidAt))}</Body><Body strong>{pesoText(p.amount)}</Body></Row>
-            <Body muted>{shortDate(p.periodStart)} – {shortDate(p.periodEnd)}</Body>
-            <Body muted>Receipt {p.receiptNo}</Body>
-          </Card>
-        </Pressable>
+      {groups.map((g) => (
+        <View key={g.year} style={{ gap: 10 }}>
+          {/* A year heading only helps once there is more than one year. */}
+          {groups.length > 1 ? <GroupHeader title={g.year} detail={`${g.items.length} ${g.items.length === 1 ? 'payment' : 'payments'}`} total={pesoText(g.total)} /> : null}
+          {g.items.map((p) => (
+            <PageRow
+              key={p.id}
+              date={dateTile(dateOfIso(p.paidAt))}
+              amount={pesoText(p.amount)}
+              detail={`${shortDate(p.periodStart)} – ${shortDate(p.periodEnd)}`}
+              extra={`Receipt ${p.receiptNo}`}
+              badge={p.id === currentId ? { text: 'Current', tone: 'ok' } : undefined}
+              onPress={() => navigation.navigate('Receipt', { paymentId: p.id })}
+            />
+          ))}
+        </View>
       ))}
     </Screen>
   );

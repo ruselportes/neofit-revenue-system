@@ -458,25 +458,33 @@ export function PageRow({
   date,
   amount,
   detail,
+  extra,
+  badge,
   waiting,
   onPress,
 }: {
   date: { day: string; month: string };
   amount: string;
   detail: string;
+  /** A second muted line, for a row that has more to say (a payment's receipt number). */
+  extra?: string;
+  /** A small label under the text, for the one row that is different (for example "Current"). */
+  badge?: { text: string; tone?: 'ok' | 'warn' | 'info' };
   waiting?: boolean;
   onPress?: () => void;
 }) {
+  const label = badge ?? (waiting ? { text: 'Waiting to upload', tone: 'warn' as const } : undefined);
   const content = (
     <View style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14 }, waiting && { borderColor: tint(colors.warn, 0.55) }]}>
       <DateTile day={date.day} month={date.month} muted={waiting} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text numberOfLines={1} style={{ color: colors.accent, fontSize: 20, fontWeight: '900' }}>{amount}</Text>
         <Text numberOfLines={1} style={styles.muted}>{detail}</Text>
+        {extra ? <Text numberOfLines={1} style={[styles.muted, { fontSize: 13 }]}>{extra}</Text> : null}
         {/* Under the text, not beside it, so the amount and the name keep their room. */}
-        {waiting ? (
+        {label ? (
           <View style={{ marginTop: 4 }}>
-            <Badge tone="warn" text="Waiting to upload" />
+            <Badge tone={label.tone ?? 'info'} text={label.text} />
           </View>
         ) : null}
       </View>
@@ -498,6 +506,11 @@ export function Row({ children, between = true }: { children: ReactNode; between
 
 export function StatusTone(status: string): 'ok' | 'warn' | 'bad' | 'info' {
   return status === 'Active' ? 'ok' : status === 'Expiring Soon' ? 'warn' : status === 'Expired' ? 'bad' : 'info';
+}
+
+/** The colour that goes with a membership status: green when active, amber when expiring, red when expired. */
+export function statusColor(status: string): string {
+  return status === 'Active' ? colors.accent : status === 'Expiring Soon' ? colors.warn : status === 'Expired' ? colors.danger : colors.muted;
 }
 
 const styles = StyleSheet.create({
