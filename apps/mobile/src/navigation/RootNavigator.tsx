@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Linking, Text } from 'react-native';
+import { Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -13,11 +13,12 @@ import { OwnerHistoryScreen, UploadDetailScreen } from '../screens/owner/OwnerHi
 import OwnerSettingsScreen from '../screens/owner/OwnerSettingsScreen';
 import StaffManagementScreen from '../screens/owner/StaffManagementScreen';
 import CameraScreen from '../screens/staff/CameraScreen';
+import StaffAccountScreen from '../screens/staff/StaffAccountScreen';
 import ReviewScreen from '../screens/staff/ReviewScreen';
 import StaffHistoryScreen from '../screens/staff/StaffHistoryScreen';
 import SuccessScreen from '../screens/staff/SuccessScreen';
 import { useAuthState, useServices } from '../state';
-import { Button, Loading, Screen, colors } from '../ui';
+import { Loading, Screen, colors } from '../ui';
 import type { AuthStackParams, MemberStackParams, MemberTabParams, OwnerHistoryParams, ScanStackParams } from './types';
 
 const theme = { ...DarkTheme, colors: { ...DarkTheme.colors, background: colors.bg, card: colors.surface, border: colors.border, primary: colors.accent, text: colors.text } };
@@ -90,19 +91,6 @@ function StaffTabs() {
       <StaffTab.Screen name="History" component={StaffHistoryScreen} options={{ tabBarIcon: icon('time') }} />
       <StaffTab.Screen name="Account" component={StaffAccountScreen} options={{ tabBarIcon: icon('person-circle') }} />
     </StaffTab.Navigator>
-  );
-}
-
-/** Staff have no settings page of their own; this is just Sign Out. */
-function StaffAccountScreen() {
-  const { auth } = useServices();
-  const state = useAuthState();
-  return (
-    <Screen brand>
-      <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800' }}>{state.kind === 'staff' ? state.profile.fullName : ''}</Text>
-      <Text style={{ color: colors.muted }}>{state.kind === 'staff' ? state.profile.email : ''}</Text>
-      <Button title="Sign Out" kind="danger" onPress={() => auth.signOut()} />
-    </Screen>
   );
 }
 

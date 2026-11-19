@@ -1,15 +1,17 @@
+import { useState } from 'react';
 import { Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { entriesText, longDate, pesoText, timeText, todayText } from '../../format';
-import { dateTile, groupPages, summarize, type PageItem } from '../../historyView';
+import { RANGES, dateTile, emptyText, filterPages, groupPages, summarize, type PageItem, type Range } from '../../historyView';
 import type { OwnerHistoryParams } from '../../navigation/types';
 import { useAsync, useServices } from '../../state';
-import { Badge, Body, Card, GroupHeader, Label, Loading, Notice, PageRow, Row, Screen, SummaryTiles, Title, colors } from '../../ui';
+import { Badge, Body, Card, EmptyState, FilterChips, GroupHeader, Label, Loading, Notice, PageRow, Row, Screen, SummaryTiles, Title, colors } from '../../ui';
 
 /** Every page from every staff member, newest first, in groups with their totals. */
 export function OwnerHistoryScreen({ navigation }: NativeStackScreenProps<OwnerHistoryParams, 'OwnerHistory'>) {
   const { uploads } = useServices();
   const list = useAsync(() => uploads.all(), []);
+  const [range, setRange] = useState<Range>('all'); // everything first, as before; the chips narrow it
 
   const items: PageItem[] = (list.data ?? []).map((u) => ({
     id: u.id,
@@ -20,16 +22,20 @@ export function OwnerHistoryScreen({ navigation }: NativeStackScreenProps<OwnerH
     synced: u.isSynced,
     who: u.staffName,
   }));
-  const summary = summarize(items);
-  const groups = groupPages(items, todayText());
+  const today = todayText();
+  const shown = filterPages(items, range, today);
+  const summary = summarize(shown);
+  const groups = groupPages(shown, today);
+  const empty = emptyText(range);
 
   return (
     <Screen brand onRefresh={list.reload} refreshing={list.loading}>
       <Title sub="All uploads from all staff">Revenue History</Title>
+      <FilterChips options={RANGES} value={range} onChange={setRange} />
       {list.error ? <Notice kind="error">{list.error}</Notice> : null}
       {list.loading && !list.data ? <Loading /> : null}
-      {list.data?.length === 0 ? <Body muted>No pages have been uploaded yet.</Body> : null}
-      {items.length > 0 ? (
+      {list.data && shown.length === 0 ? <EmptyState icon="documents-outline" title={empty.title} text={empty.text} /> : null}
+      {shown.length > 0 ? (
         <SummaryTiles
           tiles={[
             { label: 'Total', value: pesoText(summary.total), accent: true },

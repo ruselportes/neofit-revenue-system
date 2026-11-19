@@ -12,12 +12,14 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
   type DimensionValue,
   type StyleProp,
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { initialsOf } from './historyView';
 
 // NeoFit's navy and green.
 export const colors = {
@@ -345,17 +347,73 @@ export function Loading({ text = 'Loading…', variant = 'list', caption }: { te
 
 /** A row of summary tiles (label over a figure), in the same style as the owner's Dashboard tiles. */
 export function SummaryTiles({ tiles }: { tiles: Array<{ label: string; value: string; accent?: boolean }> }) {
+  const { width } = useWindowDimensions();
+  // Three across fit on a normal phone. On a narrow one the labels wrap ("ENTRIE / S"), so the money tile gets its own
+  // row and the counts share the row under it.
+  const narrow = width < 380;
+  const tile = (t: { label: string; value: string; accent?: boolean }) => (
+    // The money tile is wider so a figure like ₱12,345.00 fits; the counts only need a little room.
+    <View key={t.label} style={[styles.card, { flex: narrow || !t.accent ? 1 : 2.3, gap: 6, padding: 14 }]}>
+      <Text numberOfLines={1} style={styles.label}>{t.label}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ color: t.accent ? colors.accent : colors.text, fontSize: 22, fontWeight: '900' }}>
+        {t.value}
+      </Text>
+    </View>
+  );
+  if (!narrow) return <View style={{ flexDirection: 'row', gap: 10 }}>{tiles.map(tile)}</View>;
+  const money = tiles.filter((t) => t.accent);
+  const counts = tiles.filter((t) => !t.accent);
   return (
-    <View style={{ flexDirection: 'row', gap: 10 }}>
-      {tiles.map((t) => (
-        // The money tile is wider so a figure like ₱12,345.00 fits; the counts only need a little room.
-        <View key={t.label} style={[styles.card, { flex: t.accent ? 2.3 : 1, gap: 6, padding: 14 }]}>
-          <Text style={styles.label}>{t.label}</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ color: t.accent ? colors.accent : colors.text, fontSize: t.accent ? 22 : 22, fontWeight: '900' }}>
-            {t.value}
-          </Text>
-        </View>
+    <View style={{ gap: 10 }}>
+      {money.length > 0 ? <View style={{ flexDirection: 'row' }}>{money.map(tile)}</View> : null}
+      {counts.length > 0 ? <View style={{ flexDirection: 'row', gap: 10 }}>{counts.map(tile)}</View> : null}
+    </View>
+  );
+}
+
+/** A row of pill buttons that narrows a list (Today, Week, Month, All). */
+export function FilterChips<T extends string>({ options, value, onChange }: { options: Array<{ key: T; label: string }>; value: T; onChange: (key: T) => void }) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {options.map((o) => (
+        <Pressable
+          key={o.key}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: value === o.key }}
+          onPress={() => onChange(o.key)}
+          style={{ paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, backgroundColor: value === o.key ? colors.accent : colors.surface2 }}
+        >
+          <Text style={{ color: value === o.key ? colors.accentText : colors.text, fontWeight: '700' }}>{o.label}</Text>
+        </Pressable>
       ))}
+    </View>
+  );
+}
+
+/** What a list shows when it has nothing yet: an icon, a short title, one line of help and, optionally, the next step. */
+export function EmptyState({
+  icon,
+  title,
+  text,
+  action,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  text: string;
+  action?: { title: string; onPress: () => void };
+}) {
+  return (
+    <View style={[styles.card, { alignItems: 'center', gap: 10, paddingVertical: 32 }]}>
+      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={30} color={colors.accent} />
+      </View>
+      <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800', textAlign: 'center' }}>{title}</Text>
+      <Text style={[styles.muted, { textAlign: 'center' }]}>{text}</Text>
+      {action ? (
+        <View style={{ alignSelf: 'stretch', marginTop: 6 }}>
+          <Button title={action.title} onPress={action.onPress} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -366,6 +424,15 @@ export function DateTile({ day, month, muted }: { day: string; month: string; mu
     <View style={[styles.dateTile, muted && { backgroundColor: colors.surface2 }]} accessible={false}>
       <Text style={{ color: muted ? colors.muted : colors.accent, fontSize: 20, fontWeight: '900', lineHeight: 22 }}>{day}</Text>
       <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>{month}</Text>
+    </View>
+  );
+}
+
+/** A person's tile: their initials on the same rounded block as the History date tiles. Grey when the account is disabled. */
+export function InitialsTile({ name, muted }: { name: string; muted?: boolean }) {
+  return (
+    <View style={[styles.dateTile, muted && { backgroundColor: colors.surface2 }]} accessible={false}>
+      <Text style={{ color: muted ? colors.muted : colors.accent, fontSize: 20, fontWeight: '900' }}>{initialsOf(name)}</Text>
     </View>
   );
 }

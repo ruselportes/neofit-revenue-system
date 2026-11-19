@@ -1,12 +1,17 @@
 import { useState } from 'react';
+import { Text, View } from 'react-native';
 import type { Profile } from '../../cloud/types';
+import { todayText } from '../../format';
+import { activityText, staffActivity } from '../../historyView';
 import { confirmAsync, notify } from '../../platform/confirm';
 import { messageOf, useAsync, useServices } from '../../state';
-import { Badge, Body, Button, Card, Loading, Notice, Row, Screen, Title } from '../../ui';
+import { Body, Button, Card, InitialsTile, Label, Loading, Notice, Screen, SummaryTiles, Title, colors } from '../../ui';
 
 export default function StaffManagementScreen() {
-  const { profiles } = useServices();
+  const { profiles, uploads } = useServices();
   const staff = useAsync(() => profiles.staff(), []);
+  // What each person has uploaded. If it cannot be loaded the people still show, just without the muted line.
+  const activity = useAsync(async () => staffActivity(await uploads.all(), todayText()), []);
   const [busyId, setBusyId] = useState<string>();
 
   const toggle = async (p: Profile) => {
@@ -31,31 +36,52 @@ export default function StaffManagementScreen() {
     }
   };
 
-  const active = staff.data?.filter((p) => p.isActive).length ?? 0;
-  const total = staff.data?.length ?? 0;
+  const people = staff.data ?? [];
+  const active = people.filter((p) => p.isActive);
+  const disabled = people.filter((p) => !p.isActive);
+  const today = todayText();
+
+  const row = (p: Profile) => (
+    <Card key={p.id} style={{ padding: 14, gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <InitialsTile name={p.fullName} muted={!p.isActive} />
+        <View style={{ flex: 1, gap: 2 }}>
+          {/* No "Disabled" badge: the group heading, the grey tile and the Enable button already say it. */}
+          <Text numberOfLines={1} style={{ color: p.isActive ? colors.text : colors.muted, fontSize: 17, fontWeight: '800' }}>{p.fullName}</Text>
+          <Text numberOfLines={1} style={{ color: colors.muted, fontSize: 14 }}>{p.email}</Text>
+          {activity.data ? <Text numberOfLines={1} style={{ color: colors.muted, fontSize: 12 }}>{activityText(activity.data.get(p.id), today)}</Text> : null}
+        </View>
+      </View>
+      {/* Small and to the side: disabling is rare, so it should not be the loudest thing on the screen. */}
+      <View style={{ alignSelf: 'flex-end' }}>
+        <Button small kind={p.isActive ? 'danger' : 'secondary'} title={p.isActive ? 'Disable account' : 'Enable account'} busy={busyId === p.id} onPress={() => toggle(p)} />
+      </View>
+    </Card>
+  );
 
   return (
     <Screen brand onRefresh={staff.reload} refreshing={staff.loading}>
-      <Title sub="Accounts are created in Supabase by the owner.">Staff</Title>
+      <Title sub="Turn an account off to stop someone signing in.">Staff</Title>
       {staff.error ? <Notice kind="error">{staff.error}</Notice> : null}
       {staff.loading && !staff.data ? <Loading /> : null}
       {staff.data ? (
-        <Card>
-          <Row><Body muted>Active</Body><Body strong>{String(active)}</Body></Row>
-          <Row><Body muted>Disabled</Body><Body strong>{String(total - active)}</Body></Row>
-          <Row><Body muted>Total</Body><Body strong>{String(total)}</Body></Row>
-        </Card>
+        <SummaryTiles
+          tiles={[
+            { label: 'Active', value: String(active.length) },
+            { label: 'Disabled', value: String(disabled.length) },
+            { label: 'Total', value: String(people.length) },
+          ]}
+        />
       ) : null}
-      {staff.data?.map((p) => (
-        <Card key={p.id}>
-          <Row>
-            <Body strong>{p.fullName}</Body>
-            <Badge tone={p.isActive ? 'ok' : 'bad'} text={p.isActive ? 'Active' : 'Disabled'} />
-          </Row>
-          <Body muted>{p.email}</Body>
-          <Button small kind={p.isActive ? 'danger' : 'secondary'} title={p.isActive ? 'Disable account' : 'Enable account'} busy={busyId === p.id} onPress={() => toggle(p)} />
-        </Card>
-      ))}
+      {active.map(row)}
+      {disabled.length > 0 ? (
+        <View style={{ gap: 10 }}>
+          <Label>Disabled</Label>
+          {disabled.map(row)}
+        </View>
+      ) : null}
+      {staff.data && people.length === 0 ? <Body muted>No staff accounts yet.</Body> : null}
+      {staff.data ? <Notice>New staff accounts are created in Supabase by the owner.</Notice> : null}
     </Screen>
   );
 }

@@ -15,6 +15,18 @@ import { ScanService } from './ScanService';
 
 export const LAST_SYNC_KEY = 'neofit_last_sync_at';
 
+/**
+ * A page saved while online goes straight to the cloud and never passes the offline queue, which is the only place that
+ * used to record "last synced". This records it for the direct save too.
+ */
+class TimestampingSaver extends LogbookSaver {
+  override async save(upload: Parameters<LogbookSaver['save']>[0]): ReturnType<LogbookSaver['save']> {
+    const outcome = await super.save(upload);
+    if (outcome === 'synced') AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString()).catch(() => undefined);
+    return outcome;
+  }
+}
+
 /** Composition root of the app: builds every service once and wires them together. */
 export class Services {
   readonly client: SupabaseClient;
@@ -48,7 +60,7 @@ export class Services {
     this.queue.events.on('synced', () => {
       AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString()).catch(() => undefined);
     });
-    this.saver = new LogbookSaver(this.uploads, this.queue, new NetInfoConnectivity());
+    this.saver = new TimestampingSaver(this.uploads, this.queue, new NetInfoConnectivity());
     this.documents = new DocumentService();
     this.notifications = new NotificationService(this.members);
   }

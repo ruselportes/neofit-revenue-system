@@ -1,19 +1,24 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { View } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { entriesText, pesoText, timeText, todayText } from '../../format';
-import { dateTile, groupPages, isToday, summarize, type PageItem } from '../../historyView';
+import { RANGES, dateTile, emptyText, filterPages, groupPages, historySub, latestSync, summarize, type PageItem, type Range } from '../../historyView';
+import { LAST_SYNC_KEY } from '../../services/Services';
 import { useAuthState, useAsync, useServices, messageOf } from '../../state';
-import { Body, GroupHeader, Loading, Notice, PageRow, Screen, SummaryTiles, Title, colors } from '../../ui';
+import { EmptyState, FilterChips, GroupHeader, Loading, Notice, PageRow, Screen, SummaryTiles, Title } from '../../ui';
 
 type Item = PageItem;
 
 export default function StaffHistoryScreen() {
   const { uploads, queue } = useServices();
+  const navigation = useNavigation();
   const auth = useAuthState();
   const staffId = auth.kind === 'staff' ? auth.profile.id : '';
-  const [tab, setTab] = useState<'today' | 'all'>('today');
+  const [range, setRange] = useState<Range>('today');
   const [syncMessage, setSyncMessage] = useState<string>();
+  // When a page last reached the cloud (kept by the app each time one does), for the line under the title.
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
 
   const list = useAsync<Item[]>(async () => {
     const waiting = await queue.items();
@@ -43,6 +48,7 @@ export default function StaffHistoryScreen() {
     setSyncMessage(undefined);
     const result = await queue.syncQueue();
     if (result.failed > 0) setSyncMessage(`${result.failed} ${result.failed === 1 ? 'page is' : 'pages are'} still waiting for a connection.`);
+    setLastSynced(await AsyncStorage.getItem(LAST_SYNC_KEY).catch(() => null));
     await list.reload();
   }, [queue, list]);
 
@@ -54,30 +60,22 @@ export default function StaffHistoryScreen() {
   );
 
   const today = todayText();
-  const shown = (list.data ?? []).filter((i) => tab === 'all' || isToday(i, today));
+  const all = list.data ?? [];
+  const shown = filterPages(all, range, today);
   const summary = summarize(shown);
   const groups = groupPages(shown, today);
+  const empty = emptyText(range);
 
   return (
     <Screen brand onRefresh={refresh} refreshing={list.loading}>
-      <Title sub="Pull down to upload waiting pages">History</Title>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {(['today', 'all'] as const).map((t) => (
-          <Pressable
-            key={t}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: tab === t }}
-            onPress={() => setTab(t)}
-            style={{ paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, backgroundColor: tab === t ? colors.accent : colors.surface2 }}
-          >
-            <Text style={{ color: tab === t ? colors.accentText : colors.text, fontWeight: '700' }}>{t === 'today' ? 'Today' : 'All time'}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <Title sub={historySub(all.filter((i) => !i.synced).length, latestSync(lastSynced, all), today)}>History</Title>
+      <FilterChips options={RANGES} value={range} onChange={setRange} />
       {syncMessage ? <Notice kind="warn">{syncMessage}</Notice> : null}
       {list.error ? <Notice kind="error">{list.error}</Notice> : null}
       {list.loading && !list.data ? <Loading /> : null}
-      {list.data && shown.length === 0 ? <Body muted>No pages {tab === 'today' ? 'today' : 'yet'}.</Body> : null}
+      {list.data && shown.length === 0 ? (
+        <EmptyState icon="camera-outline" title={empty.title} text={empty.text} action={{ title: 'Scan a page', onPress: () => navigation.navigate('Scan' as never) }} />
+      ) : null}
       {shown.length > 0 ? (
         <SummaryTiles
           tiles={[
@@ -90,7 +88,7 @@ export default function StaffHistoryScreen() {
       {groups.map((g) => (
         <View key={g.key} style={{ gap: 10 }}>
           {/* Today's list is a single group, so its header would only repeat the tiles above. */}
-          {tab === 'all' ? <GroupHeader title={g.title} detail={`${g.pages} ${g.pages === 1 ? 'page' : 'pages'}`} total={pesoText(g.total)} /> : null}
+          {range !== 'today' ? <GroupHeader title={g.title} detail={`${g.pages} ${g.pages === 1 ? 'page' : 'pages'}`} total={pesoText(g.total)} /> : null}
           {g.items.map((i) => (
             <PageRow
               key={i.id}

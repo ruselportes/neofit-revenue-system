@@ -1,14 +1,12 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState } from 'react';
-import { shortDate, timeText } from '../../format';
 import { confirmAsync, notify } from '../../platform/confirm';
-import { LAST_SYNC_KEY } from '../../services/Services';
-import { messageOf, useAsync, useAuthState, useServices } from '../../state';
+import { SyncCard } from '../../SyncCard';
+import { messageOf, useAuthState, useServices } from '../../state';
 import { VersionLabel } from '../../UpdateModal';
-import { Body, Button, Card, Field, Label, Notice, Row, Screen, Title } from '../../ui';
+import { Body, Button, Card, Field, Label, Notice, Screen, Title } from '../../ui';
 
 export default function OwnerSettingsScreen() {
-  const { auth, profiles, uploads, queue, documents } = useServices();
+  const { auth, profiles, uploads, documents } = useServices();
   const state = useAuthState();
   const profile = state.kind === 'staff' ? state.profile : null;
 
@@ -16,8 +14,6 @@ export default function OwnerSettingsScreen() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string }>();
   const [busy, setBusy] = useState<string>();
-
-  const sync = useAsync(async () => ({ waiting: await queue.pendingCount(), last: await AsyncStorage.getItem(LAST_SYNC_KEY).catch(() => null) }), []);
 
   const run = async (key: string, work: () => Promise<string>) => {
     setBusy(key);
@@ -74,24 +70,7 @@ export default function OwnerSettingsScreen() {
         />
       </Card>
 
-      <Card>
-        <Label>Sync status</Label>
-        <Row><Body muted>Pages waiting to upload</Body><Body strong>{String(sync.data?.waiting ?? '—')}</Body></Row>
-        <Row><Body muted>Last upload</Body><Body strong>{sync.data?.last ? `${shortDate(sync.data.last.slice(0, 10))}, ${timeText(sync.data.last)}` : '—'}</Body></Row>
-        <Button
-          small
-          kind="secondary"
-          title="Upload waiting pages now"
-          busy={busy === 'sync'}
-          onPress={() =>
-            run('sync', async () => {
-              const result = await queue.syncQueue();
-              await sync.reload();
-              return result.failed > 0 ? `${result.synced} uploaded, ${result.failed} still waiting for a connection.` : `${result.synced} uploaded.`;
-            })
-          }
-        />
-      </Card>
+      <SyncCard />
 
       <Card>
         <Label>Reports</Label>
