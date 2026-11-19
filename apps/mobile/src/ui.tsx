@@ -343,6 +343,88 @@ export function Loading({ text = 'Loading…', variant = 'list', caption }: { te
   );
 }
 
+/** A row of summary tiles (label over a figure), in the same style as the owner's Dashboard tiles. */
+export function SummaryTiles({ tiles }: { tiles: Array<{ label: string; value: string; accent?: boolean }> }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 10 }}>
+      {tiles.map((t) => (
+        // The money tile is wider so a figure like ₱12,345.00 fits; the counts only need a little room.
+        <View key={t.label} style={[styles.card, { flex: t.accent ? 2.3 : 1, gap: 6, padding: 14 }]}>
+          <Text style={styles.label}>{t.label}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ color: t.accent ? colors.accent : colors.text, fontSize: t.accent ? 22 : 22, fontWeight: '900' }}>
+            {t.value}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** A small calendar tile ("19" over "NOV") that gives a row something to find it by. */
+export function DateTile({ day, month, muted }: { day: string; month: string; muted?: boolean }) {
+  return (
+    <View style={[styles.dateTile, muted && { backgroundColor: colors.surface2 }]} accessible={false}>
+      <Text style={{ color: muted ? colors.muted : colors.accent, fontSize: 20, fontWeight: '900', lineHeight: 22 }}>{day}</Text>
+      <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>{month}</Text>
+    </View>
+  );
+}
+
+/** The heading above a group of rows, with the group's total. */
+export function GroupHeader({ title, detail, total }: { title: string; detail: string; total: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginTop: 6 }} accessibilityRole="header">
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, flexShrink: 1 }}>
+        <Text style={styles.label}>{title}</Text>
+        <Text style={{ color: colors.muted, fontSize: 12 }}>{detail}</Text>
+      </View>
+      <Text style={{ color: colors.text, fontSize: 14, fontWeight: '800' }}>{total}</Text>
+    </View>
+  );
+}
+
+/**
+ * One page in a History list: a date tile, the amount as the strongest text, a muted line under it, and on the right
+ * either "Waiting to upload" (only when it matters) or a chevron when the row opens something.
+ */
+export function PageRow({
+  date,
+  amount,
+  detail,
+  waiting,
+  onPress,
+}: {
+  date: { day: string; month: string };
+  amount: string;
+  detail: string;
+  waiting?: boolean;
+  onPress?: () => void;
+}) {
+  const content = (
+    <View style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14 }, waiting && { borderColor: tint(colors.warn, 0.55) }]}>
+      <DateTile day={date.day} month={date.month} muted={waiting} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text numberOfLines={1} style={{ color: colors.accent, fontSize: 20, fontWeight: '900' }}>{amount}</Text>
+        <Text numberOfLines={1} style={styles.muted}>{detail}</Text>
+        {/* Under the text, not beside it, so the amount and the name keep their room. */}
+        {waiting ? (
+          <View style={{ marginTop: 4 }}>
+            <Badge tone="warn" text="Waiting to upload" />
+          </View>
+        ) : null}
+      </View>
+      {onPress ? <Ionicons name="chevron-forward" size={20} color={colors.muted} /> : null}
+    </View>
+  );
+  return onPress ? (
+    <Pressable accessibilityRole="button" onPress={onPress}>
+      {content}
+    </Pressable>
+  ) : (
+    content
+  );
+}
+
 export function Row({ children, between = true }: { children: ReactNode; between?: boolean }) {
   return <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: between ? 'space-between' : 'flex-start', gap: 10 }}>{children}</View>;
 }
@@ -381,5 +463,6 @@ const styles = StyleSheet.create({
   inputBare: { flex: 1, minHeight: 52, color: colors.text, fontSize: 16, padding: 0 },
   notice: { borderLeftWidth: 4, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14 },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' },
+  dateTile: { width: 52, height: 56, borderRadius: 14, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center', gap: 1 },
   loading: { alignItems: 'center', justifyContent: 'center', gap: 12, padding: 40 },
 });

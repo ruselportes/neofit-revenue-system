@@ -13,7 +13,7 @@ export type ScanStackParams = {
 
 export type OwnerHistoryParams = {
   OwnerHistory: undefined;
-  UploadDetail: { uploadId: string; date: string; staffName: string | null; total: number };
+  UploadDetail: { uploadId: string; date: string; staffName: string | null; total: number; entries: number; savedAt: string; synced: boolean };
 };
 
 export type MemberStackParams = {

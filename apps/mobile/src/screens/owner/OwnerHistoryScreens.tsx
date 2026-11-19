@@ -1,14 +1,27 @@
-import { Pressable, Text } from 'react-native';
+import { Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { entriesText, longDate, pesoText } from '../../format';
+import { entriesText, longDate, pesoText, timeText, todayText } from '../../format';
+import { dateTile, groupPages, summarize, type PageItem } from '../../historyView';
 import type { OwnerHistoryParams } from '../../navigation/types';
 import { useAsync, useServices } from '../../state';
-import { Badge, Body, Card, Loading, Notice, Row, Screen, Title, colors } from '../../ui';
+import { Badge, Body, Card, GroupHeader, Label, Loading, Notice, PageRow, Row, Screen, SummaryTiles, Title, colors } from '../../ui';
 
-/** Every page from every staff member, newest first. */
+/** Every page from every staff member, newest first, in groups with their totals. */
 export function OwnerHistoryScreen({ navigation }: NativeStackScreenProps<OwnerHistoryParams, 'OwnerHistory'>) {
   const { uploads } = useServices();
   const list = useAsync(() => uploads.all(), []);
+
+  const items: PageItem[] = (list.data ?? []).map((u) => ({
+    id: u.id,
+    date: u.date,
+    entries: u.totalEntries,
+    total: u.totalAmount,
+    time: u.createdAt,
+    synced: u.isSynced,
+    who: u.staffName,
+  }));
+  const summary = summarize(items);
+  const groups = groupPages(items, todayText());
 
   return (
     <Screen brand onRefresh={list.reload} refreshing={list.loading}>
@@ -16,47 +29,85 @@ export function OwnerHistoryScreen({ navigation }: NativeStackScreenProps<OwnerH
       {list.error ? <Notice kind="error">{list.error}</Notice> : null}
       {list.loading && !list.data ? <Loading /> : null}
       {list.data?.length === 0 ? <Body muted>No pages have been uploaded yet.</Body> : null}
-      {list.data?.map((u) => (
-        <Pressable
-          key={u.id}
-          accessibilityRole="button"
-          onPress={() => navigation.navigate('UploadDetail', { uploadId: u.id, date: u.date, staffName: u.staffName, total: u.totalAmount })}
-        >
-          <Card>
-            <Row>
-              <Body strong>{longDate(u.date)}</Body>
-              <Text style={{ color: colors.accent, fontWeight: '800', fontSize: 18 }}>{pesoText(u.totalAmount)}</Text>
-            </Row>
-            <Row>
-              <Body muted>{u.staffName ?? 'Unknown staff'}</Body>
-              <Body muted>{entriesText(u.totalEntries)}</Body>
-            </Row>
-          </Card>
-        </Pressable>
+      {items.length > 0 ? (
+        <SummaryTiles
+          tiles={[
+            { label: 'Total', value: pesoText(summary.total), accent: true },
+            { label: summary.pages === 1 ? 'Page' : 'Pages', value: String(summary.pages) },
+            { label: summary.entries === 1 ? 'Entry' : 'Entries', value: String(summary.entries) },
+          ]}
+        />
+      ) : null}
+      {groups.map((g) => (
+        <View key={g.key} style={{ gap: 10 }}>
+          <GroupHeader title={g.title} detail={`${g.pages} ${g.pages === 1 ? 'page' : 'pages'}`} total={pesoText(g.total)} />
+          {g.items.map((i) => (
+            <PageRow
+              key={i.id}
+              date={dateTile(i.date)}
+              amount={pesoText(i.total)}
+              detail={`${i.who ?? 'Unknown staff'} · ${entriesText(i.entries)}`}
+              waiting={!i.synced}
+              onPress={() =>
+                navigation.navigate('UploadDetail', {
+                  uploadId: i.id,
+                  date: i.date,
+                  staffName: i.who ?? null,
+                  total: i.total,
+                  entries: i.entries,
+                  savedAt: i.time,
+                  synced: i.synced,
+                })
+              }
+            />
+          ))}
+        </View>
       ))}
     </Screen>
   );
 }
 
+/** One page: a header with its figures, then its entries in a single card with thin dividers. */
 export function UploadDetailScreen({ route }: NativeStackScreenProps<OwnerHistoryParams, 'UploadDetail'>) {
   const { uploads } = useServices();
-  const { uploadId, date, staffName, total } = route.params;
+  const { uploadId, date, staffName, total, entries: entryCount, savedAt, synced } = route.params;
   const entries = useAsync(() => uploads.entriesOf(uploadId), [uploadId]);
 
   return (
     <Screen onRefresh={entries.reload} refreshing={entries.loading}>
-      <Title sub={`${staffName ?? 'Unknown staff'} · ${pesoText(total)}`}>{longDate(date)}</Title>
+      <Title>{longDate(date)}</Title>
+      <Card style={{ gap: 12 }}>
+        <Label>Page total</Label>
+        <Text style={{ color: colors.accent, fontSize: 34, fontWeight: '900', letterSpacing: -0.5 }}>{pesoText(total)}</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <Badge tone="info" text={entriesText(entryCount)} />
+          <Badge tone="info" text={staffName ?? 'Unknown staff'} />
+          <Badge tone="info" text={`Saved ${timeText(savedAt)}`} />
+          {synced ? null : <Badge tone="warn" text="Waiting to upload" />}
+        </View>
+      </Card>
+
       {entries.error ? <Notice kind="error">{entries.error}</Notice> : null}
       {entries.loading && !entries.data ? <Loading /> : null}
-      {entries.data?.map((e) => (
-        <Card key={e.id}>
-          <Row>
-            <Body strong>{e.name}</Body>
-            <Body>{e.amount === null ? '—' : pesoText(e.amount)}</Body>
-          </Row>
-          {e.isDuplicate ? <Badge tone="warn" text="DUP" /> : null}
+      {entries.data && entries.data.length > 0 ? (
+        <Card style={{ gap: 0, padding: 0, overflow: 'hidden' }}>
+          {entries.data.map((e, i) => (
+            <View key={e.id}>
+              {i > 0 ? <View style={{ height: 1, backgroundColor: colors.border, marginHorizontal: 16 }} /> : null}
+              <View style={{ paddingVertical: 14, paddingHorizontal: 16 }}>
+                <Row>
+                  <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <Body strong>{e.name}</Body>
+                    {e.isDuplicate ? <Badge tone="warn" text="Possible duplicate" /> : null}
+                  </View>
+                  <Body muted={e.amount === null}>{e.amount === null ? '—' : pesoText(e.amount)}</Body>
+                </Row>
+              </View>
+            </View>
+          ))}
         </Card>
-      ))}
+      ) : null}
+      {entries.data?.length === 0 ? <Body muted>This page has no entries.</Body> : null}
     </Screen>
   );
 }

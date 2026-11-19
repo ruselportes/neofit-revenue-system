@@ -1,18 +1,12 @@
 import { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { dateOfIso, entriesText, longDate, pesoText, timeText, todayText } from '../../format';
+import { entriesText, pesoText, timeText, todayText } from '../../format';
+import { dateTile, groupPages, isToday, summarize, type PageItem } from '../../historyView';
 import { useAuthState, useAsync, useServices, messageOf } from '../../state';
-import { Badge, Body, Card, Loading, Notice, Row, Screen, Title, colors } from '../../ui';
+import { Body, GroupHeader, Loading, Notice, PageRow, Screen, SummaryTiles, Title, colors } from '../../ui';
 
-interface Item {
-  id: string;
-  date: string;
-  entries: number;
-  total: number;
-  time: string;
-  synced: boolean;
-}
+type Item = PageItem;
 
 export default function StaffHistoryScreen() {
   const { uploads, queue } = useServices();
@@ -60,7 +54,9 @@ export default function StaffHistoryScreen() {
   );
 
   const today = todayText();
-  const shown = (list.data ?? []).filter((i) => tab === 'all' || i.date === today || dateOfIso(i.time) === today);
+  const shown = (list.data ?? []).filter((i) => tab === 'all' || isToday(i, today));
+  const summary = summarize(shown);
+  const groups = groupPages(shown, today);
 
   return (
     <Screen brand onRefresh={refresh} refreshing={list.loading}>
@@ -82,17 +78,29 @@ export default function StaffHistoryScreen() {
       {list.error ? <Notice kind="error">{list.error}</Notice> : null}
       {list.loading && !list.data ? <Loading /> : null}
       {list.data && shown.length === 0 ? <Body muted>No pages {tab === 'today' ? 'today' : 'yet'}.</Body> : null}
-      {shown.map((i) => (
-        <Card key={i.id}>
-          <Row>
-            <Body strong>{longDate(i.date)}</Body>
-            <Badge tone={i.synced ? 'ok' : 'warn'} text={i.synced ? 'Synced' : 'Pending Sync'} />
-          </Row>
-          <Row>
-            <Body muted>{entriesText(i.entries)} · {timeText(i.time)}</Body>
-            <Text style={{ color: colors.accent, fontWeight: '800', fontSize: 18 }}>{pesoText(i.total)}</Text>
-          </Row>
-        </Card>
+      {shown.length > 0 ? (
+        <SummaryTiles
+          tiles={[
+            { label: 'Total', value: pesoText(summary.total), accent: true },
+            { label: summary.pages === 1 ? 'Page' : 'Pages', value: String(summary.pages) },
+            { label: summary.entries === 1 ? 'Entry' : 'Entries', value: String(summary.entries) },
+          ]}
+        />
+      ) : null}
+      {groups.map((g) => (
+        <View key={g.key} style={{ gap: 10 }}>
+          {/* Today's list is a single group, so its header would only repeat the tiles above. */}
+          {tab === 'all' ? <GroupHeader title={g.title} detail={`${g.pages} ${g.pages === 1 ? 'page' : 'pages'}`} total={pesoText(g.total)} /> : null}
+          {g.items.map((i) => (
+            <PageRow
+              key={i.id}
+              date={dateTile(i.date)}
+              amount={pesoText(i.total)}
+              detail={`${entriesText(i.entries)} · ${timeText(i.time)}`}
+              waiting={!i.synced}
+            />
+          ))}
+        </View>
       ))}
     </Screen>
   );
