@@ -25,7 +25,7 @@ export function createApp(c: Container): Express {
   app.use('/api', new AuthController(c.auth).router());
 
   const protectedApi = express.Router();
-  protectedApi.use(requireAuth(c.tokens));
+  protectedApi.use(requireAuth(c.tokens, (claims) => c.auth.isCurrent(claims)));
   for (const controller of [
     new AccountController(c.auth),
     new MemberController(c.members),

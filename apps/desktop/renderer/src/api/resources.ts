@@ -21,15 +21,24 @@ export class AuthApi {
   needsSetup(): Promise<{ needsSetup: boolean }> {
     return this.http.get('/api/setup/status');
   }
-  login(email: string, password: string): Promise<Session> {
-    return this.http.post('/api/login', { email, password });
+  /** `remember` is "Keep me signed in": the login then lasts 30 days instead of 24 hours. */
+  login(email: string, password: string, remember = false): Promise<Session> {
+    return this.http.post('/api/login', { email, password, remember });
   }
-  setup(email: string, password: string): Promise<SessionWithKey> {
-    return this.http.post('/api/setup', { email, password });
+  setup(email: string, password: string, remember = false): Promise<SessionWithKey> {
+    return this.http.post('/api/setup', { email, password, remember });
   }
   /** Forgot password: the recovery key sets a new password and is replaced by a new key. */
-  resetPassword(email: string, recoveryKey: string, newPassword: string): Promise<SessionWithKey> {
-    return this.http.post('/api/reset-password', { email, recoveryKey, newPassword });
+  resetPassword(email: string, recoveryKey: string, newPassword: string, remember = false): Promise<SessionWithKey> {
+    return this.http.post('/api/reset-password', { email, recoveryKey, newPassword, remember });
+  }
+  /** The app opened with a saved login: who it is, and a renewed token. Refused (401) when the login has ended. */
+  session(): Promise<Session> {
+    return this.http.get('/api/session');
+  }
+  /** Sign out: every saved login of this person stops working. */
+  logout(): Promise<void> {
+    return this.http.post('/api/logout', {});
   }
   /** Makes a new recovery key for the signed-in administrator (the old one stops working). */
   newRecoveryKey(password: string): Promise<{ recoveryKey: string }> {

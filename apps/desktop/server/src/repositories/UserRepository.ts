@@ -6,6 +6,7 @@ interface UserRow {
   email: string;
   password: string;
   recovery_hash: string | null;
+  session_version: number;
   role: string;
 }
 
@@ -34,12 +35,26 @@ export class UserRepository extends Repository {
     this.db.prepare('UPDATE users SET recovery_hash = ? WHERE id = ?').run(recoveryHash, id);
   }
 
-  /** Saves a new password and the next recovery key together (a used key is never valid again). */
+  /** Saves a new password and the next recovery key together (a used key is never valid again). Every saved login ends. */
   setPasswordAndRecovery(id: number, passwordHash: string, recoveryHash: string): void {
-    this.db.prepare('UPDATE users SET password = ?, recovery_hash = ? WHERE id = ?').run(passwordHash, recoveryHash, id);
+    this.db
+      .prepare('UPDATE users SET password = ?, recovery_hash = ?, session_version = session_version + 1 WHERE id = ?')
+      .run(passwordHash, recoveryHash, id);
+  }
+
+  /** Ends every login this person has (used by Sign out and by a password reset). */
+  endSessions(id: number): void {
+    this.db.prepare('UPDATE users SET session_version = session_version + 1 WHERE id = ?').run(id);
   }
 
   private toRecord(row: UserRow): UserRecord {
-    return { id: row.id, email: row.email, passwordHash: row.password, recoveryHash: row.recovery_hash, role: row.role };
+    return {
+      id: row.id,
+      email: row.email,
+      passwordHash: row.password,
+      recoveryHash: row.recovery_hash,
+      sessionVersion: row.session_version ?? 0,
+      role: row.role,
+    };
   }
 }

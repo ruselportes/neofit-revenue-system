@@ -102,5 +102,8 @@ export class AppDatabase {
     if (!userColumns.some((c) => c.name === 'recovery_hash')) {
       this.connection.exec('ALTER TABLE users ADD COLUMN recovery_hash TEXT');
     }
+    if (!userColumns.some((c) => c.name === 'session_version')) {
+      this.connection.exec('ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0');
+    }
   }
 }

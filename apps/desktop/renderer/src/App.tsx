@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Modal, Notice, PasswordInput, RecoveryKeyPanel } from './components';
 import logoImg from './assets/logo.png';
-import { ApiClient } from './api/ApiClient';
+import { ApiClient, ApiError } from './api/ApiClient';
 import { Api } from './api/resources';
 import type { Session } from './api/types';
 import { AppContext, applyTheme, loadTheme, messageOf, type Theme } from './state';
@@ -24,6 +24,10 @@ declare global {
       installUpdate?: () => Promise<void>;
       /** True when the installer already has the Supabase project URL and anon key. */
       cloudPreset?: boolean;
+      /** "Keep me signed in": the login token, encrypted by Windows, in the app's data folder. */
+      saveSession?: (token: string) => Promise<{ ok: boolean }>;
+      loadSession?: () => Promise<string | null>;
+      clearSession?: () => Promise<{ ok: boolean }>;
       saveCloudConfig?: (config: {
         url?: string;
         anonKey?: string;
@@ -218,11 +222,24 @@ export default function App() {
       return !c;
     });
 
+  // "Keep me signed in": only the desktop app can keep a login. Until the saved one is checked, "Starting…" shows, so the
+  // sign-in page does not flash before the dashboard.
+  const canRemember = typeof window.neofit?.saveSession === 'function';
+  const [checking, setChecking] = useState(canRemember);
+
+  /** Leaves the app on this screen only (the saved login file is forgotten too). */
   const signOut = useCallback(() => {
     client.setToken(null);
     setSession(null);
     setView('dashboard');
+    void window.neofit?.clearSession?.();
   }, [client]);
+
+  /** The Sign out button: also ends every saved login of this person on the server. */
+  const signOutNow = useCallback(async () => {
+    await api.auth.logout().catch(() => undefined);
+    signOut();
+  }, [api, signOut]);
 
   useEffect(() => {
     client.onUnauthorized = signOut;
@@ -230,9 +247,38 @@ export default function App() {
 
   useEffect(() => applyTheme(theme), [theme]);
 
-  const signedIn = (s: Session) => {
+  // Open straight into the app when a saved login is still good. Each launch renews it for another 30 days.
+  useEffect(() => {
+    if (!canRemember) return;
+    let live = true;
+    (async () => {
+      try {
+        const saved = await window.neofit!.loadSession!();
+        if (!saved) return;
+        client.setToken(saved);
+        const renewed = await api.auth.session();
+        if (!live) return;
+        client.setToken(renewed.token);
+        void window.neofit!.saveSession!(renewed.token);
+        setSession(renewed);
+      } catch (err) {
+        client.setToken(null);
+        // A refusal means the saved login has ended (signed out, password reset, expired): forget it.
+        // Any other failure (the local server was slow) keeps the file, and the admin can still sign in by hand.
+        if (err instanceof ApiError && err.status === 401) void window.neofit!.clearSession!();
+      } finally {
+        if (live) setChecking(false);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [canRemember, client, api]);
+
+  const signedIn = (s: Session, remember: boolean) => {
     client.setToken(s.token);
     setSession(s);
+    if (canRemember) void (remember ? window.neofit!.saveSession!(s.token) : window.neofit!.clearSession!());
   };
 
   const navigate: Navigate = (next, options) => {
@@ -240,10 +286,11 @@ export default function App() {
     setView(next);
   };
 
+  if (checking) return <div className="center">Starting…</div>;
   if (!session) return <LoginView api={api} onSignedIn={signedIn} />;
 
   return (
-    <AppContext.Provider value={{ api, email: session.email, signOut }}>
+    <AppContext.Provider value={{ api, email: session.email, signOut: () => void signOutNow() }}>
       <div className="shell">
         <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
           <div className="sidebar-head">
@@ -302,7 +349,7 @@ export default function App() {
               </span>
               <span className="nav-label">{session.hasRecoveryKey ? 'Recovery key' : 'Set recovery key'}</span>
             </button>
-            <button className="foot-btn" onClick={signOut} title={collapsed ? `Sign out (${session.email})` : session.email}>
+            <button className="foot-btn" onClick={() => void signOutNow()} title={collapsed ? `Sign out (${session.email})` : session.email}>
               <span className="nav-icon">
                 <Icon>
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

@@ -19,6 +19,10 @@ contextBridge.exposeInMainWorld('neofit', {
   saveCloudConfig: (config) => ipcRenderer.invoke('save-cloud-config', config),
   // Checks an owner login without saving it (first-run setup).
   checkCloudLogin: (config) => ipcRenderer.invoke('check-cloud-login', config),
+  // "Keep me signed in": the login token, encrypted by Windows, kept in the app's data folder.
+  saveSession: (token) => ipcRenderer.invoke('session:save', token),
+  loadSession: () => ipcRenderer.invoke('session:load'),
+  clearSession: () => ipcRenderer.invoke('session:clear'),
   // True when the installer already contains the Supabase project URL and anon key.
   cloudPreset: arg('neofit-cloud-preset') === '1',
 });

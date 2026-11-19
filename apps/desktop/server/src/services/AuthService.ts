@@ -35,7 +35,8 @@ export class AuthService {
     private readonly now: () => number = Date.now,
   ) {}
 
-  async login(email: unknown, password: unknown): Promise<LoginResult> {
+  /** `remember` is the "Keep me signed in" choice: it makes a token that lasts 30 days instead of 24 hours. */
+  async login(email: unknown, password: unknown, remember = false): Promise<LoginResult> {
     if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
       throw new ValidationError('Email and password are required.');
     }
@@ -43,7 +44,29 @@ export class AuthService {
     const hash = user?.passwordHash ?? (await this.dummy());
     const valid = await this.hasher.verify(password, hash);
     if (!user || !valid) throw new UnauthorizedError('Invalid email or password.');
-    return this.session(user);
+    return this.session(user, remember);
+  }
+
+  /** True while the login is still the current one: the person exists and no sign-out or password reset came after it. */
+  isCurrent(claims: { sub: string; ver: number }): boolean {
+    const user = this.users.findById(Number(claims.sub));
+    return user !== undefined && user.sessionVersion === claims.ver;
+  }
+
+  /**
+   * Called when the app opens with a saved login. Gives a fresh token (so a remembered login slides forward another
+   * 30 days) and the person's details, or refuses if the login is no longer current.
+   */
+  renew(claims: { sub: string; ver: number; rem: boolean }): LoginResult {
+    const user = this.users.findById(Number(claims.sub));
+    if (!user || user.sessionVersion !== claims.ver) throw new UnauthorizedError('Sign in required.');
+    return this.session(user, claims.rem);
+  }
+
+  /** Sign out: every saved login of this person stops working, on every window. */
+  endSessions(userId: unknown): void {
+    const user = this.users.findById(Number(userId));
+    if (user) this.users.endSessions(user.id);
   }
 
   /** True until the administrator account has been created. */
@@ -52,7 +75,7 @@ export class AuthService {
   }
 
   /** First-run setup from the Login view. Works once: after that the account exists and this is refused. */
-  async setup(email: unknown, password: unknown): Promise<SessionWithKey> {
+  async setup(email: unknown, password: unknown, remember = false): Promise<SessionWithKey> {
     if (!this.needsSetup()) throw new ConflictError('The administrator account already exists.');
     if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       throw new ValidationError('Enter a valid email address.');
@@ -60,7 +83,7 @@ export class AuthService {
     this.checkNewPassword(password);
     const recoveryKey = generateKey();
     this.users.insert(email.trim(), await this.hasher.hash(password as string), 'admin', await this.hasher.hash(normalizeKey(recoveryKey)));
-    return { ...(await this.login(email, password)), recoveryKey };
+    return { ...(await this.login(email, password, remember)), recoveryKey };
   }
 
   /** Creates the administrator on the first run, only when the users table is empty. */
@@ -86,7 +109,7 @@ export class AuthService {
    * Forgot password: the email plus the recovery key set a new password. The used key is replaced by a new one,
    * returned here once. Five wrong keys for the same email lock this for 15 minutes.
    */
-  async resetPassword(email: unknown, recoveryKey: unknown, newPassword: unknown): Promise<SessionWithKey> {
+  async resetPassword(email: unknown, recoveryKey: unknown, newPassword: unknown, remember = false): Promise<SessionWithKey> {
     if (typeof email !== 'string' || typeof recoveryKey !== 'string' || !email.trim() || !recoveryKey.trim()) {
       throw new ValidationError('Email and recovery key are required.');
     }
@@ -111,12 +134,13 @@ export class AuthService {
     this.failures.delete(id);
     const next = generateKey();
     this.users.setPasswordAndRecovery(user.id, await this.hasher.hash(newPassword as string), await this.hasher.hash(normalizeKey(next)));
-    return { ...(await this.login(email, newPassword)), recoveryKey: next };
+    // The reset above raised the session version, so every login made before it is already refused.
+    return { ...(await this.login(email, newPassword, remember)), recoveryKey: next };
   }
 
-  private session(user: { id: number; email: string; role: string; recoveryHash: string | null }): LoginResult {
+  private session(user: { id: number; email: string; role: string; recoveryHash: string | null; sessionVersion: number }, remember: boolean): LoginResult {
     return {
-      token: this.tokens.sign({ sub: String(user.id), email: user.email, role: user.role }),
+      token: this.tokens.sign({ sub: String(user.id), email: user.email, role: user.role, ver: user.sessionVersion, rem: remember }),
       email: user.email,
       role: user.role,
       hasRecoveryKey: user.recoveryHash !== null,

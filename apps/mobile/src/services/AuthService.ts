@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { isAuthRetryableFetchError, type AuthError as SupabaseAuthError, type SupabaseClient } from '@supabase/supabase-js';
 import type { MemberRepository, ProfileRepository } from '../cloud/repositories';
 import type { MemberAccount, Profile } from '../cloud/types';
 import { parseAuthUrl } from './authLinks';
@@ -17,14 +17,30 @@ export class AuthError extends Error {
   }
 }
 
+/** Where the last known identity is kept between app launches (Secure Store on the phone). */
+export interface IdentityCache {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+  removeItem(key: string): Promise<void>;
+}
+
+const IDENTITY_KEY = 'neofit_last_identity';
+
+type Identity = { userId: string; state: Extract<AuthState, { kind: 'staff' | 'member' }> };
 type Listener = (state: AuthState) => void;
 
 /**
  * Who is signed in, and as what (SDD Section 4.1). Staff and owners have a profile; members have
  * only a member account. A disabled account is signed out at once.
+ *
+ * The sign-in itself is kept by the Supabase client in Secure Store, so it survives the app being closed. What this
+ * class adds is that a bad moment at launch (no signal yet, a slow network) does not look like a sign-out: the last
+ * known identity opens the app, and the person is signed out only on a definite answer (disabled account, no access,
+ * or the saved login refused).
  */
 export class AuthService {
   private state: AuthState = { kind: 'loading' };
+  private offline = false;
   private readonly listeners = new Set<Listener>();
 
   constructor(
@@ -32,10 +48,16 @@ export class AuthService {
     private readonly profiles: ProfileRepository,
     private readonly members: MemberRepository,
     private readonly redirectUrl?: string,
+    private readonly cache?: IdentityCache,
   ) {}
 
   current(): AuthState {
     return this.state;
+  }
+
+  /** True while the app is open on the last known identity because the server could not be reached. */
+  isOffline(): boolean {
+    return this.offline;
   }
 
   /** Calls the listener now and after every change. Returns a function that stops it. */
@@ -49,17 +71,17 @@ export class AuthService {
   async start(): Promise<void> {
     // Only record a sign-out here: calling the database from inside this callback can deadlock the client.
     this.client.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') this.set({ kind: 'signedOut' });
+      if (event === 'SIGNED_OUT') void this.forget();
     });
+    await this.restore();
+  }
 
-    const { data } = await this.client.auth.getSession();
-    if (!data.session) return this.set({ kind: 'signedOut' });
-    try {
-      await this.resolve(data.session.user.id);
-    } catch {
-      // Cannot be reached or no longer allowed: stay out until the user signs in again.
-      this.set({ kind: 'signedOut' });
-    }
+  /**
+   * Checks the saved sign-in again. Called when the app comes back to the foreground and when the connection returns,
+   * so a person who was let in on the last known identity is confirmed (or refused) as soon as the server answers.
+   */
+  async revalidate(): Promise<void> {
+    if (this.state.kind === 'staff' || this.state.kind === 'member') await this.restore();
   }
 
   async signIn(email: string, password: string): Promise<void> {
@@ -91,8 +113,8 @@ export class AuthService {
   }
 
   async signOut(): Promise<void> {
-    await this.client.auth.signOut();
-    this.set({ kind: 'signedOut' });
+    await this.client.auth.signOut().catch(() => undefined);
+    await this.forget();
   }
 
   async changePassword(newPassword: string): Promise<void> {
@@ -107,6 +129,28 @@ export class AuthService {
     if (data.user) await this.resolve(data.user.id);
   }
 
+  // ---- inside ----
+
+  /** Looks at the saved session and decides: signed in, signed out, or "cannot tell yet" (then the last identity is used). */
+  private async restore(): Promise<void> {
+    const { data, error } = await this.client.auth.getSession();
+
+    if (!data.session) {
+      // No usable session. If the server just could not be reached to renew it, the login is still saved: stay in.
+      if (error && this.couldBeTemporary(error)) return this.useLastIdentity();
+      return this.forget();
+    }
+
+    try {
+      await this.resolve(data.session.user.id);
+    } catch (err) {
+      // Only our own refusals (disabled account, no access) end the sign-in. Anything else, such as no signal or a
+      // slow server, says nothing about the account, so the last known identity is used and checked again later.
+      if (err instanceof AuthError) return this.forget();
+      return this.useLastIdentity();
+    }
+  }
+
   private async resolve(userId: string, expected?: 'staff' | 'member'): Promise<void> {
     const profile = await this.profiles.get(userId);
     if (profile) {
@@ -118,14 +162,54 @@ export class AuthService {
         await this.signOut();
         throw new AuthError('Staff sign in with their email and password.');
       }
-      return this.set({ kind: 'staff', profile });
+      return this.confirm(userId, { kind: 'staff', profile });
     }
 
     const account = await this.members.accountForUser(userId);
-    if (account) return this.set({ kind: 'member', account });
+    if (account) return this.confirm(userId, { kind: 'member', account });
 
     await this.signOut();
     throw new AuthError('This account does not have access to the app.');
+  }
+
+  /** The server answered and the person is who we thought: remember them for the next launch. */
+  private async confirm(userId: string, state: Identity['state']): Promise<void> {
+    this.offline = false;
+    this.set(state);
+    await this.cache?.setItem(IDENTITY_KEY, JSON.stringify({ userId, state } satisfies Identity)).catch(() => undefined);
+  }
+
+  /** The server could not be reached: open the app on who was last signed in, if anyone. */
+  private async useLastIdentity(): Promise<void> {
+    const identity = await this.readIdentity();
+    if (!identity) return this.set({ kind: 'signedOut' });
+    this.offline = true;
+    this.set(identity.state);
+  }
+
+  private async readIdentity(): Promise<Identity | null> {
+    try {
+      const raw = await this.cache?.getItem(IDENTITY_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Identity;
+      return parsed.userId && (parsed.state?.kind === 'staff' || parsed.state?.kind === 'member') ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async forget(): Promise<void> {
+    this.offline = false;
+    await this.cache?.removeItem(IDENTITY_KEY).catch(() => undefined);
+    this.set({ kind: 'signedOut' });
+  }
+
+  /** A failure that says nothing about the account: no signal, a timeout, a server hiccup. */
+  private couldBeTemporary(err: unknown): boolean {
+    if (isAuthRetryableFetchError(err)) return true;
+    const status = (err as Partial<SupabaseAuthError> | null)?.status;
+    const message = err instanceof Error ? err.message : '';
+    return (typeof status === 'number' && status >= 500) || /network|fetch|timeout|timed out|failed to connect/i.test(message);
   }
 
   private set(state: AuthState): void {

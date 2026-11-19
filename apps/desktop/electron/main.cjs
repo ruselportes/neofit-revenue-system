@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, safeStorage, shell } = require('electron');
 const { spawn } = require('node:child_process');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -229,6 +229,37 @@ ipcMain.handle('save-cloud-config', async (_event, input) => {
     app.relaunch();
     app.exit(0);
   }, 800);
+  return { ok: true };
+});
+
+/**
+ * "Keep me signed in on this computer": the login token is kept in a file in the app's data folder, encrypted with
+ * Windows' own protection (DPAPI, tied to this Windows user) through Electron's safeStorage. It is never kept in the
+ * web page's storage. If encryption is not available, nothing is saved and the admin simply signs in each time.
+ */
+const sessionFile = () => path.join(app.getPath('userData'), 'neofit-session.bin');
+
+ipcMain.handle('session:save', (_event, token) => {
+  if (typeof token !== 'string' || !token || !safeStorage.isEncryptionAvailable()) return { ok: false };
+  fs.writeFileSync(sessionFile(), safeStorage.encryptString(token), { mode: 0o600 });
+  return { ok: true };
+});
+
+ipcMain.handle('session:load', () => {
+  try {
+    if (!safeStorage.isEncryptionAvailable()) return null;
+    return safeStorage.decryptString(fs.readFileSync(sessionFile()));
+  } catch {
+    return null; // no file, or one that cannot be read: the admin signs in again
+  }
+});
+
+ipcMain.handle('session:clear', () => {
+  try {
+    fs.unlinkSync(sessionFile());
+  } catch {
+    // nothing saved
+  }
   return { ok: true };
 });
 

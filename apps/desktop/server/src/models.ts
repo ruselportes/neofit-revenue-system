@@ -49,6 +49,8 @@ export interface UserRecord {
   passwordHash: string;
   /** Hash of the recovery key; null until the administrator has one. */
   recoveryHash: string | null;
+  /** Goes up on sign-out and on a password reset; a login made before that stops working. */
+  sessionVersion: number;
   role: string;
 }
 

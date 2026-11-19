@@ -14,14 +14,19 @@ export interface AuthedRequest extends Request {
   user?: TokenClaims;
 }
 
-/** Every route behind this needs a valid JWT. */
-export function requireAuth(tokens: TokenService): RequestHandler {
+/**
+ * Every route behind this needs a valid JWT. `isCurrent` also checks that no sign-out or password reset came after the
+ * token was made, which is what lets a remembered 30-day login be cancelled.
+ */
+export function requireAuth(tokens: TokenService, isCurrent: (claims: TokenClaims) => boolean = () => true): RequestHandler {
   return (req: AuthedRequest, _res: Response, next: NextFunction) => {
     const header = req.header('authorization') ?? '';
     const match = /^Bearer (.+)$/i.exec(header);
     if (!match) return next(new UnauthorizedError('Sign in required.'));
     try {
-      req.user = tokens.verify(match[1]!);
+      const claims = tokens.verify(match[1]!);
+      if (!isCurrent(claims)) throw new UnauthorizedError('This sign-in has ended. Sign in again.');
+      req.user = claims;
       next();
     } catch (err) {
       next(err);

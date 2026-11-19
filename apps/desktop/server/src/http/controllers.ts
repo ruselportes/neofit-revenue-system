@@ -24,15 +24,15 @@ export class AuthController extends Controller {
   router(): Router {
     const r = Router();
     r.post('/login', async (req, res) => {
-      res.json(await this.auth.login(req.body?.email, req.body?.password));
+      res.json(await this.auth.login(req.body?.email, req.body?.password, req.body?.remember === true));
     });
     r.get('/setup/status', (_req, res) => void res.json({ needsSetup: this.auth.needsSetup() }));
     r.post('/setup', async (req, res) => {
-      res.status(201).json(await this.auth.setup(req.body?.email, req.body?.password));
+      res.status(201).json(await this.auth.setup(req.body?.email, req.body?.password, req.body?.remember === true));
     });
     // Forgot password: the email and the recovery key set a new password.
     r.post('/reset-password', async (req, res) => {
-      res.json(await this.auth.resetPassword(req.body?.email, req.body?.recoveryKey, req.body?.newPassword));
+      res.json(await this.auth.resetPassword(req.body?.email, req.body?.recoveryKey, req.body?.newPassword, req.body?.remember === true));
     });
     return r;
   }
@@ -48,6 +48,15 @@ export class AccountController extends Controller {
     const r = Router();
     r.post('/recovery-key', async (req: AuthedRequest, res) => {
       res.status(201).json(await this.auth.issueRecoveryKey(req.user?.sub, req.body?.password));
+    });
+    // The app opened with a saved login: answers who it is and hands back a renewed token.
+    r.get('/session', (req: AuthedRequest, res) => {
+      res.json(this.auth.renew({ sub: req.user!.sub, ver: req.user!.ver, rem: req.user!.rem }));
+    });
+    // Sign out: ends every saved login of this person.
+    r.post('/logout', (req: AuthedRequest, res) => {
+      this.auth.endSessions(req.user?.sub);
+      res.status(204).end();
     });
     return r;
   }

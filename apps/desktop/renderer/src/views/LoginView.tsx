@@ -13,7 +13,7 @@ function LoginVersion() {
 }
 
 /** Sign in, create the administrator account the first time, or reset a forgotten password with the recovery key. */
-export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (s: Session) => void }) {
+export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (s: Session, remember: boolean) => void }) {
   const [mode, setMode] = useState<Mode | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,6 +29,10 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
   const [pendingCloud, setPendingCloud] = useState<{ ownerEmail: string; ownerPassword: string } | null>(null);
   const [restarting, setRestarting] = useState(false);
   const canConnect = typeof window.neofit?.checkCloudLogin === 'function' && typeof window.neofit?.saveCloudConfig === 'function';
+  // "Keep me signed in on this computer". On by default: this is the owner's own PC. Only the desktop app can keep it.
+  const canRemember = typeof window.neofit?.saveSession === 'function';
+  const [remember, setRemember] = useState(true);
+  const keep = canRemember && remember;
 
   useEffect(() => {
     api.auth.needsSetup().then(
@@ -58,7 +62,7 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
     setBusy(true);
     try {
       if (mode === 'signin') {
-        onSignedIn(await api.auth.login(email, password));
+        onSignedIn(await api.auth.login(email, password, keep), keep);
       } else {
         if (wantsCloud) {
           // Prove the owner login works before anything is created, so a typo does not leave a half-finished setup.
@@ -71,7 +75,7 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
           setPendingCloud({ ownerEmail: cloudEmail.trim(), ownerPassword: cloudPassword });
         }
         // Both setup and reset end with a new recovery key that must be saved before the app opens.
-        const result = await (mode === 'setup' ? api.auth.setup(email, password) : api.auth.resetPassword(email, recoveryKey, password));
+        const result = await (mode === 'setup' ? api.auth.setup(email, password, keep) : api.auth.resetPassword(email, recoveryKey, password, keep));
         setIssued(result);
         setMode('key');
       }
@@ -85,10 +89,12 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
   const finishSetup = async () => {
     if (!issued) return;
     if (pendingCloud) {
+      // Connecting restarts the app. Saving the login first means the admin is still signed in after the restart.
+      if (keep) await window.neofit!.saveSession!(issued.token);
       const saved = await window.neofit!.saveCloudConfig!(pendingCloud);
       if (saved.ok) return setRestarting(true);
     }
-    onSignedIn(issued);
+    onSignedIn(issued, keep);
   };
 
   if (restarting) {
@@ -97,7 +103,9 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
         <LoginVersion />
         <div className="card">
           <img className="login-logo" src={logoImg} alt="NeoFit Fitness Gym" />
-          <Notice kind="ok">Connected to the cloud. The app is restarting. Sign in with the account you just created.</Notice>
+          <Notice kind="ok">
+            Connected to the cloud. The app is restarting.{keep ? '' : ' Sign in with the account you just created.'}
+          </Notice>
         </div>
       </div>
     );
@@ -188,6 +196,12 @@ export default function LoginView({ api, onSignedIn }: { api: Api; onSignedIn: (
               <PasswordInput value={cloudPassword} onChange={(e) => setCloudPassword(e.target.value)} autoComplete="off" />
             </label>
           </fieldset>
+        )}
+        {canRemember && mode !== 'key' && (
+          <label className="check">
+            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+            <span>Keep me signed in on this computer</span>
+          </label>
         )}
         <button className="btn primary" disabled={busy}>
           {busy ? 'Please wait…' : mode === 'setup' ? 'Create account' : mode === 'forgot' ? 'Reset password' : 'Sign in'}

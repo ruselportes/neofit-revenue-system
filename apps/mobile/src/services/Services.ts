@@ -2,7 +2,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { LogbookSaver, OfflineQueue } from '@neofit/core';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
+import { AppState, Platform } from 'react-native';
 import type { AppConfig } from '../config';
 import { MemberRepository, ProfileRepository, UploadRepository } from '../cloud/repositories';
 import { AsyncStorageStore, NetInfoConnectivity } from '../platform/adapters';
@@ -37,7 +38,9 @@ export class Services {
     this.uploads = new UploadRepository(this.client);
     this.profiles = new ProfileRepository(this.client);
     this.members = new MemberRepository(this.client);
-    this.auth = new AuthService(this.client, this.profiles, this.members, redirectUrl);
+    // The same store also remembers who was last signed in, so a launch without signal does not look like a sign-out.
+    this.auth = new AuthService(this.client, this.profiles, this.members, redirectUrl, storage);
+    this.keepSignedIn();
 
     this.scan = new ScanService(config);
     this.queue = new OfflineQueue(new AsyncStorageStore(), this.uploads);
@@ -48,5 +51,24 @@ export class Services {
     this.saver = new LogbookSaver(this.uploads, this.queue, new NetInfoConnectivity());
     this.documents = new DocumentService();
     this.notifications = new NotificationService(this.members);
+  }
+
+  /**
+   * Keeps the sign-in alive on the phone: the Supabase client renews the login only while the app is in front (as its
+   * React Native guide says), and the sign-in is checked again when the app returns and when the connection comes back.
+   */
+  private keepSignedIn(): void {
+    if (Platform.OS === 'web') return;
+    AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        this.client.auth.startAutoRefresh().catch(() => undefined);
+        this.auth.revalidate().catch(() => undefined);
+      } else {
+        this.client.auth.stopAutoRefresh().catch(() => undefined);
+      }
+    });
+    NetInfo.addEventListener((net) => {
+      if (net.isConnected === true && this.auth.isOffline()) this.auth.revalidate().catch(() => undefined);
+    });
   }
 }
