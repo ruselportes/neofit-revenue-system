@@ -231,7 +231,7 @@ export function MemberRatesScreen() {
         title="Sign Out"
         kind="danger"
         onPress={async () => {
-          if (await confirmAsync('Sign out?', 'You can sign in again with an email link.', 'Sign out', true)) await auth.signOut();
+          if (await confirmAsync('Sign out?', 'You can sign in again with a code sent to your email.', 'Sign out', true)) await auth.signOut();
         }}
       />
     </Screen>

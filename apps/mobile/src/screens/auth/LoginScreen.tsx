@@ -39,7 +39,7 @@ export default function LoginScreen({ navigation }: NativeStackScreenProps<AuthS
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" textContentType="password" onSubmitEditing={submit} />
       <Button title="Sign In" onPress={submit} busy={busy} />
       <Pressable accessibilityRole="link" onPress={() => navigation.navigate('MemberLogin')} style={{ alignItems: 'center', padding: 12 }}>
-        <Text style={{ color: colors.accent, fontWeight: '600' }}>Sign in with an email link</Text>
+        <Text style={{ color: colors.accent, fontWeight: '600' }}>Member sign in with an email code</Text>
         <Body muted>For NeoFit members</Body>
       </Pressable>
       <VersionLabel />

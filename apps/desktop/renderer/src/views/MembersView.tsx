@@ -259,7 +259,7 @@ function MemberForm({ member, rates, onClose, onSaved }: { member?: Member; rate
   );
 }
 
-/** Shows whether the member can use the member app, and sends the invite link. */
+/** Shows whether the member can use the member app, and sends the invite (a sign-in code by email). */
 function InviteSection({ member: initial, onInvited }: { member: Member; onInvited: () => void }) {
   const { api } = useApp();
   const cloud = useAsync(() => api.cloud.status(), [api]);
@@ -274,7 +274,7 @@ function InviteSection({ member: initial, onInvited }: { member: Member; onInvit
     try {
       const sent = await api.cloud.invite(member.id, email.trim() || undefined);
       setMember(sent.member);
-      setResult({ kind: 'ok', text: sent.status === 'resent' ? `A new sign-in link was sent to ${sent.member.email}.` : `An invite was sent to ${sent.member.email}.` });
+      setResult({ kind: 'ok', text: sent.status === 'resent' ? `A new sign-in code was sent to ${sent.member.email}.` : `An invite was sent to ${sent.member.email}: a sign-in code is in their email.` });
       onInvited();
     } catch (err) {
       setResult({ kind: 'error', text: messageOf(err) });
@@ -296,18 +296,19 @@ function InviteSection({ member: initial, onInvited }: { member: Member; onInvit
             <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="member@example.com" />
           </label>
           <p className="hint" style={{ margin: 0 }}>
-            The member gets an email with a sign-in link. They will see their plan, payments, receipts, rates and announcements, and
-            can only view them: renewals are paid at the front desk.
+            The member gets an email with a sign-in code. They install the NeoFit app, choose Member sign in, enter this email address,
+            tap "I already have a code" and type the code from the email. They will see their plan, payments, receipts, rates and
+            announcements, and can only view them: renewals are paid at the front desk.
           </p>
           {result && <Notice kind={result.kind}>{result.text}</Notice>}
           <button className="btn small" style={{ alignSelf: 'flex-start' }} disabled={busy || !email.trim()} onClick={send}>
-            {busy ? 'Sending…' : member.invitedAt ? 'Send a new link' : 'Send Invite Link'}
+            {busy ? 'Sending…' : member.invitedAt ? 'Send a new code' : 'Send Invite'}
           </button>
         </div>
       ) : (
         <>
-          <p className="hint">Sending an invite link needs the cloud connection, which is not set up on this computer yet.</p>
-          <button className="btn small" disabled>Send Invite Link</button>
+          <p className="hint">Sending an invite needs the cloud connection, which is not set up on this computer yet.</p>
+          <button className="btn small" disabled>Send Invite</button>
         </>
       )}
     </>

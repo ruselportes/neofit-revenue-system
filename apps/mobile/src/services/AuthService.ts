@@ -1,6 +1,7 @@
 import { isAuthRetryableFetchError, type AuthError as SupabaseAuthError, type SupabaseClient } from '@supabase/supabase-js';
 import type { MemberRepository, ProfileRepository } from '../cloud/repositories';
 import type { MemberAccount, Profile } from '../cloud/types';
+import { cleanCode, isCompleteCode } from '../memberCode';
 import { parseAuthUrl } from './authLinks';
 
 export type AuthState =
@@ -91,15 +92,41 @@ export class AuthService {
   }
 
   /**
-   * Emails a one-time sign-in link. The answer is the same whether or not the address was invited,
-   * so nobody can use this screen to find out who is a member.
+   * Emails a one-time sign-in code (the Supabase email template decides what the message holds). The answer is the same
+   * whether or not the address was invited, so nobody can use this screen to find out who is a member.
+   * `emailRedirectTo` only matters while the template still has a link, so an old template keeps working.
    */
-  async requestMemberLink(email: string): Promise<void> {
+  async requestMemberCode(email: string): Promise<void> {
     const { error } = await this.client.auth.signInWithOtp({
       email: email.trim(),
       options: { shouldCreateUser: false, emailRedirectTo: this.redirectUrl },
     });
     if (error && /network|fetch|timeout/i.test(error.message)) throw new AuthError('Cannot reach the server. Check your connection and try again.');
+    // A rate limit says nothing about who is a member, so it is shown: otherwise "a code is on its way" would be a lie.
+    if (error && (error.status === 429 || /rate_limit/i.test(error.code ?? ''))) throw new AuthError('Too many codes were asked for. Wait a minute and try again.');
+  }
+
+  /**
+   * Signs a member in with the code from the email. A wrong or expired code is one clear message; a connection problem
+   * is another, so the member knows whether to retype or to wait. A staff account is refused here, as with the link.
+   */
+  async verifyMemberCode(email: string, code: string): Promise<void> {
+    const token = cleanCode(code);
+    if (!isCompleteCode(token)) throw new AuthError('Enter the full code from the email.');
+    const connection = new AuthError('Cannot reach the server. Check your connection and try again.');
+
+    let result;
+    try {
+      result = await this.client.auth.verifyOtp({ email: email.trim(), token, type: 'email' });
+    } catch {
+      throw connection;
+    }
+    const { data, error } = result;
+    if (error || !data.user) {
+      if (error && this.couldBeTemporary(error)) throw connection;
+      throw new AuthError('That code is wrong or has expired. Ask for a new one.');
+    }
+    await this.resolve(data.user.id, 'member');
   }
 
   /** Called with the address of an opened sign-in link. Returns false if it is not a sign-in link. */

@@ -1,6 +1,7 @@
 // Development only: a tiny stand-in for Supabase, so the app can be tried in a browser without a project.
 //   node dev/fake-supabase.mjs        (listens on http://localhost:54321)
 // Sign in with owner@neofit.test, staff@neofit.test or member@neofit.test, password "test-pass-1234".
+// Member sign-in code: any known email with the code 123456.
 // Data is in memory and lost when it stops. It implements only the calls the app makes.
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
@@ -145,6 +146,14 @@ createServer(async (req, res) => {
   }
   if (url.pathname === '/auth/v1/logout') return send(res, 204);
   if (url.pathname === '/auth/v1/otp') return send(res, 200, {});
+  // The email sign-in code: the fake accepts the code 123456 for any known account and refuses every other code.
+  if (url.pathname === '/auth/v1/verify') {
+    const { email, token, type } = (await body(req)) ?? {};
+    if (type !== 'email' || !users[email] || token !== '123456') {
+      return send(res, 403, { code: 403, error_code: 'otp_expired', msg: 'Token has expired or is invalid' });
+    }
+    return send(res, 200, sessionFor(email));
+  }
 
   const m = /^\/rest\/v1\/(\w+)$/.exec(url.pathname);
   if (!m || !bearerUser(req)) return send(res, 401, { message: 'Not signed in' });

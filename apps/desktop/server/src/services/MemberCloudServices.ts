@@ -76,7 +76,7 @@ export class MemberAccessService {
 
   /**
    * Publishes the member and the payments at once, then asks the cloud to invite the email address.
-   * Inviting again sends a new sign-in link instead of creating a second account.
+   * Inviting again sends a new sign-in code instead of creating a second account.
    */
   async invite(id: number, raw: unknown): Promise<{ member: MemberRecord; status: 'invited' | 'resent' }> {
     const email = new Body(raw ?? {}).optionalEmail('email');
