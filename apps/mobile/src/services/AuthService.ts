@@ -96,8 +96,10 @@ export class AuthService {
   }
 
   /**
-   * A member's everyday sign-in. A wrong password and an unknown address give the same message, so the screen does not
-   * reveal who is a member. A staff account is refused here, as with the code.
+   * The everyday sign-in on the first screen. A wrong password and an unknown address give the same message, so the
+   * screen does not reveal who is a member. This screen opens first, so a staff member or the owner may type their
+   * password here too: the password is right, so they go to their own screens. (Only the email code refuses them,
+   * because a code would let them in without their password.)
    */
   async signInMember(email: string, password: string): Promise<void> {
     let result;
@@ -114,7 +116,7 @@ export class AuthService {
     }
     // The password just worked, so there is nothing left to create.
     await this.cache?.removeItem(PASSWORD_PENDING_KEY).catch(() => undefined);
-    await this.resolve(data.user, 'member', false);
+    await this.resolve(data.user, undefined, false);
   }
 
   /** Saves the password a member creates after signing in with a code, and lets them into the app. */
@@ -219,6 +221,8 @@ export class AuthService {
     // "Same as the old password" is fine: that is the password they want. Only the mark still has to be saved.
     if (result.error?.code === 'same_password') result = await this.client.auth.updateUser({ data });
     const { error } = result;
+    // The server's own password rules (length, characters) are set in the Supabase dashboard.
+    if (error?.code === 'weak_password') throw new AuthError('Choose a stronger password: use more characters, with letters and numbers.');
     if (error) throw new AuthError(this.couldBeTemporary(error) ? CONNECTION : error.message);
     if (!result.data.user) throw new AuthError(CONNECTION);
     return result.data.user.id;

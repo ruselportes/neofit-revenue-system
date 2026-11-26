@@ -44,10 +44,11 @@ describe('local API', () => {
   });
   afterAll(() => api.stop());
 
+  let added = 0;
   const newMember = (over: object = {}) => ({
     name: 'Rose Garcia',
     contact: '09171234567',
-    email: 'rose@example.com',
+    email: `member-${++added}@example.com`,
     plan: 'Regular Plan - Monthly (No Treadmill)',
     ...over,
   });

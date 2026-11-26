@@ -4,6 +4,8 @@ project_id = "neofit-revenue-system"
 [auth]
 # Public sign-up is off: staff and owners are added by the owner, members by invite only.
 enable_signup = false
+# The app asks for at least this many; set the same in the dashboard (Authentication, Email provider).
+minimum_password_length = 8
 site_url = "http://localhost:5173"
 
 [auth.email]

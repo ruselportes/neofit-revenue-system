@@ -48,6 +48,28 @@ describe('members: an email is required', () => {
   });
 });
 
+describe('members: each email address belongs to one member', () => {
+  it('refuses a second member with the same address, whatever the capital letters', async () => {
+    const api = await TestServer.start();
+    try {
+      const token = await api.login();
+      const add = (name: string, email: string) => api.request('POST', '/api/members', { name, email, plan: PLAN }, token);
+      expect((await add('Rose Garcia', 'family@example.com')).status).toBe(201);
+      const again = await add('Ian Garcia', 'Family@Example.com');
+      expect(again.status).toBe(400);
+      expect(again.body.error).toMatch(/Rose Garcia \(M-001\) already uses this email/);
+
+      const ian = await add('Ian Garcia', 'ian@example.com');
+      const id = ian.body.member.id;
+      expect((await api.request('PUT', `/api/members/${id}`, { email: 'FAMILY@example.com' }, token)).status).toBe(400);
+      // Saving a member's own address again is not a clash.
+      expect((await api.request('PUT', `/api/members/${id}`, { email: 'ian@example.com', name: 'Ian G. Cruz' }, token)).status).toBe(200);
+    } finally {
+      await api.stop();
+    }
+  });
+});
+
 describe('members: the contact number is optional', () => {
   it('saves a member without one, lets it be cleared, and still checks one that is given', async () => {
     const api = await TestServer.start();

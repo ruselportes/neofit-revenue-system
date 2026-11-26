@@ -182,7 +182,9 @@ function MemberForm({ member, rates, onClose, onSaved }: { member?: Member; rate
       const common = { name: cleanedName, contact: contact.trim(), email: email.trim(), address, plan: planText(plan), ...(photo ? { photo } : {}) };
       if (editing) {
         await api.members.update(member.id, { ...common, joinedDate: joined });
-        onSaved(`${name} was updated.`);
+        // The app account takes a new address only when a new code is sent.
+        const moved = member.invitedAt && member.email?.toLowerCase() !== email.trim().toLowerCase();
+        onSaved(moved ? `${name} was updated. Open Details and send a new code, so they can sign in with the new email.` : `${name} was updated.`);
       } else {
         const result = await api.members.create({
           ...common,

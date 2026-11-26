@@ -186,7 +186,7 @@ describe('with a cloud connection', () => {
     it('counts the logbook once and skips a payment already written in it', async () => {
       cloud.seedPage('2026-11-04', [['Rose', 700], ['Walk-in', 70]]);
       await api.request('POST', '/api/members', member(), token);
-      await api.request('POST', '/api/members', member({ name: 'Ian' }), token);
+      await api.request('POST', '/api/members', member({ name: 'Ian', email: 'ian@example.com' }), token);
       const res = await api.request('GET', '/api/revenue?year=2026&month=11', undefined, token);
       expect(res.body).toMatchObject({ logbookTotal: 770, paymentsTotal: 700, total: 1470, logbookStale: false });
     });

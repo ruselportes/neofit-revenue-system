@@ -84,6 +84,8 @@ export class MemberAccessService {
 
     const member = this.memberService.get(id);
     if (!member.email) throw new ValidationError("Add the member's email address first.");
+    // Records saved before duplicates were refused: the cloud would reject them and hold up other changes.
+    this.memberService.requireOwnEmail(member.email, id);
 
     const cloudId = member.cloudId ?? randomUUID();
     await this.cloud.upsertAccount(accountRow(member, cloudId));

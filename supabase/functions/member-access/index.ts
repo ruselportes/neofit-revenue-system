@@ -1,6 +1,7 @@
 // Edge Function: member-access. Called by the desktop with the owner's session.
-//   invite: creates the member's sign-in account already confirmed and emails a six-digit sign-in code
-//           (or sends a new code if the account exists); records user_id and invited_at.
+//   invite: creates the member's sign-in account already confirmed and emails a sign-in code. If the member already
+//           has an account, it is kept (and takes the member's current email address) and a new code is sent.
+//           Records user_id and invited_at.
 //   remove: deletes the member's cloud copy and sign-in account.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { isAlreadyRegistered, mayManageMembers, parseAccessRequest } from '../_shared/access.ts';
@@ -52,21 +53,31 @@ Deno.serve(async (req) => {
   // invite: make the sign-in account already confirmed (so there is no link to click), then email the sign-in code.
   // MEMBER_APP_URL only matters while the email template still holds a link; with a code-only template it is not used.
   const redirectTo = Deno.env.get('MEMBER_APP_URL') ?? undefined;
-  const created = await admin.auth.admin.createUser({
-    email: account.email,
-    email_confirm: true,
-    user_metadata: { kind: 'member' },
-  });
-
-  let userId = created.data?.user?.id ?? account.user_id;
+  let userId: string | null = account.user_id;
   let status: 'invited' | 'resent' = 'invited';
 
-  if (created.error) {
-    if (!isAlreadyRegistered(created.error)) return json({ error: created.error.message }, 500);
-    // The account exists: never a second one. An account that an older invite left unconfirmed is confirmed now, so a
-    // code can sign it in.
-    if (account.user_id) await admin.auth.admin.updateUserById(account.user_id, { email_confirm: true });
-    status = 'resent';
+  if (account.user_id) {
+    // Never a second account. This also moves the account to a changed email address (the password stays), and confirms
+    // an account that an older invite left unconfirmed, so a code can sign it in.
+    const { error } = await admin.auth.admin.updateUserById(account.user_id, { email: account.email, email_confirm: true });
+    if (!error) status = 'resent';
+    else if (isAlreadyRegistered(error)) return json({ error: 'That email address already belongs to another account. Use a different one.' }, 409);
+    else if (error.status === 404 || /not found/i.test(error.message)) userId = null; // the account was deleted: make a new one
+    else return json({ error: error.message }, 500);
+  }
+
+  if (!userId) {
+    const created = await admin.auth.admin.createUser({
+      email: account.email,
+      email_confirm: true,
+      user_metadata: { kind: 'member' },
+    });
+    if (created.error) {
+      if (!isAlreadyRegistered(created.error)) return json({ error: created.error.message }, 500);
+      status = 'resent';
+    } else {
+      userId = created.data.user?.id ?? null;
+    }
   }
 
   const { error: codeError } = await caller.auth.signInWithOtp({

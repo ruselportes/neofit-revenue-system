@@ -1,6 +1,6 @@
 {
   "name": "@neofit/desktop-electron",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "private": true,
   "main": "main.cjs",
   "scripts": {

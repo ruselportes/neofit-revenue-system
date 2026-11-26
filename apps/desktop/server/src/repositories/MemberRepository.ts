@@ -29,6 +29,13 @@ export class MemberRepository extends Repository {
     return row && toRecord(row);
   }
 
+  /** Another member who already uses this email address (capital letters do not matter). */
+  findOtherByEmail(email: string, exceptId?: number): { memberId: string; name: string } | undefined {
+    return this.db
+      .prepare('SELECT member_id AS memberId, name FROM members WHERE lower(email) = lower(?) AND id IS NOT ? LIMIT 1')
+      .get(email, exceptId ?? null) as { memberId: string; name: string } | undefined;
+  }
+
   /** The next free ID in the form M-001. */
   nextMemberId(): string {
     const rows = this.db.prepare('SELECT member_id FROM members').all() as { member_id: string }[];

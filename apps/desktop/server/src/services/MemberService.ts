@@ -1,4 +1,4 @@
-import { PlanParser, type IClock } from '@neofit/core';
+import { PlanParser, ValidationError, type IClock } from '@neofit/core';
 import { NotFoundError } from '../errors';
 import type { MemberRecord, PaymentRecord } from '../models';
 import type { MemberRepository } from '../repositories/MemberRepository';
@@ -71,7 +71,7 @@ export class MemberService {
         memberId: this.members.nextMemberId(),
         name: body.personName('name', 100),
         contact: body.contactNumber('contact', 20),
-        email: body.email('email'),
+        email: this.ownEmail(body.email('email')),
         plan,
         status: MemberStatusPolicy.statusFor(start, coverage.end, this.today()),
         joinedDate: start,
@@ -95,10 +95,14 @@ export class MemberService {
     const joinedDate = body.optionalDate('joinedDate') ?? current.joinedDate;
     const expiryDate = body.optionalDate('expiryDate') ?? current.expiryDate;
 
+    const email = body.has('email') ? body.email('email') : current.email;
+    // Checked only when the address changes, so an older pair that shares one can still have other details edited.
+    if (email && email.toLowerCase() !== current.email?.toLowerCase()) this.requireOwnEmail(email, id);
+
     this.members.update(id, {
       name: body.has('name') ? body.personName('name', 100) : current.name,
       contact: body.has('contact') ? body.contactNumber('contact', 20) : current.contact,
-      email: body.has('email') ? body.email('email') : current.email,
+      email,
       plan,
       status: MemberStatusPolicy.statusFor(joinedDate, expiryDate, this.today()),
       joinedDate,
@@ -161,6 +165,19 @@ export class MemberService {
       });
     }
     this.members.delete(id);
+  }
+
+  /** A member signs in to the app with their email address, so no two members may share one. */
+  requireOwnEmail(email: string, exceptId?: number): void {
+    const other = this.members.findOtherByEmail(email, exceptId);
+    if (other) {
+      throw new ValidationError(`${other.name} (${other.memberId}) already uses this email address. Each member needs their own.`);
+    }
+  }
+
+  private ownEmail(email: string): string {
+    this.requireOwnEmail(email);
+    return email;
   }
 
   private refreshStatus(member: MemberRecord, today: string): MemberRecord {

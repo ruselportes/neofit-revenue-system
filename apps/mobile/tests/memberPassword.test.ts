@@ -71,9 +71,16 @@ describe('a member signing in with a password', () => {
     await expect(t.auth.signInMember('rose@example.com', 'secret-pass')).rejects.toThrow('Cannot reach the server.');
   });
 
-  it('refuses a staff account', async () => {
+  it('takes a staff member who types their password here to the staff screens', async () => {
     const t = build({ profile: staff });
-    await expect(t.auth.signInMember('staff@example.com', 'secret-pass')).rejects.toThrow('Staff sign in');
+    await t.auth.signInMember('staff@example.com', 'secret-pass');
+    expect(t.auth.current().kind).toBe('staff');
+    expect(t.client.auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it('still refuses a disabled staff account', async () => {
+    const t = build({ profile: { ...staff, isActive: false } as Profile });
+    await expect(t.auth.signInMember('staff@example.com', 'secret-pass')).rejects.toThrow('disabled');
     expect(t.auth.current().kind).toBe('signedOut');
   });
 });
@@ -120,6 +127,12 @@ describe('creating the password after an email code', () => {
     await t.auth.setMemberPassword('long-enough-1');
     expect(t.client.auth.updateUser).toHaveBeenLastCalledWith({ data: { has_password: true } });
     expect(needs(t.auth)).toBe(false);
+  });
+
+  it('explains a password the server finds too weak', async () => {
+    const t = build({ updateErrors: [new AuthApiError('Password should contain...', 422, 'weak_password')] });
+    await t.auth.verifyMemberCode('rose@example.com', '12345678');
+    await expect(t.auth.setMemberPassword('long-enough-1')).rejects.toThrow('Choose a stronger password');
   });
 
   it('keeps asking when saving fails', async () => {
