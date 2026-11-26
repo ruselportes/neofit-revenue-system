@@ -18,13 +18,22 @@ export interface RateLike {
   daily: number;
 }
 
+export type RatePeriod = 'monthly' | 'semi' | 'daily';
+
+/** Which official rate a member's plan is, and how often it is paid. */
+export function planRate(plan: string): { category: string; type: string; period: RatePeriod } {
+  return {
+    category: /student|senior/i.test(plan) ? 'Student/Senior Plan' : 'Regular Plan',
+    type: /with treadmill/i.test(plan) ? 'With Treadmill' : 'No Treadmill',
+    period: /daily/i.test(plan) ? 'daily' : /semi/i.test(plan) ? 'semi' : 'monthly',
+  };
+}
+
 /** The price of the member's own plan from the official rates, for "Renew at the front desk: ₱700.00". Null when it cannot be matched. */
 export function renewalPrice(plan: string, rates: RateLike[]): number | null {
-  const category = /student|senior/i.test(plan) ? 'Student/Senior Plan' : 'Regular Plan';
-  const type = /with treadmill/i.test(plan) ? 'With Treadmill' : 'No Treadmill';
-  const rate = rates.find((r) => r.category === category && r.type === type);
-  if (!rate) return null;
-  return /daily/i.test(plan) ? rate.daily : /semi/i.test(plan) ? rate.semi : rate.monthly;
+  const mine = planRate(plan);
+  const rate = rates.find((r) => r.category === mine.category && r.type === mine.type);
+  return rate ? rate[mine.period] : null;
 }
 
 /**

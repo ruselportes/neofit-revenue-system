@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentPaymentId, groupByYear, periodRemaining, renewalPrice, splitPlan } from '../src/memberView';
+import { currentPaymentId, groupByYear, periodRemaining, planRate, renewalPrice, splitPlan } from '../src/memberView';
 
 const RATES = [
   { category: 'Regular Plan', type: 'No Treadmill', monthly: 700, semi: 350, daily: 70 },
@@ -28,6 +28,14 @@ describe('the renewal price', () => {
   });
   it('is null when the rates are not there', () => {
     expect(renewalPrice('Regular Plan - Monthly (No Treadmill)', [])).toBeNull();
+  });
+});
+
+describe('which rate card is the member\'s own', () => {
+  it('reads the category, the treadmill choice and how often it is paid', () => {
+    expect(planRate('Regular Plan - Monthly (No Treadmill)')).toEqual({ category: 'Regular Plan', type: 'No Treadmill', period: 'monthly' });
+    expect(planRate('Student/Senior Plan - Semi-Monthly (With Treadmill)')).toEqual({ category: 'Student/Senior Plan', type: 'With Treadmill', period: 'semi' });
+    expect(planRate('Regular Plan - Daily (No Treadmill)').period).toBe('daily');
   });
 });
 

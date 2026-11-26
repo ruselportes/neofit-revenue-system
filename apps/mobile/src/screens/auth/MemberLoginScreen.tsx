@@ -107,7 +107,7 @@ export default function MemberLoginScreen({ navigation }: NativeStackScreenProps
         <>
           <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="username" />
           <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" textContentType="password" onSubmitEditing={signInWithPassword} />
-          <Button title="Sign In" onPress={signInWithPassword} busy={busy} />
+          <Button pill title="Sign In" onPress={signInWithPassword} busy={busy} />
           <Pressable accessibilityRole="link" onPress={() => goTo('email')} style={{ alignItems: 'center', padding: 8 }}>
             <Text style={{ color: colors.accent, fontWeight: '600', textAlign: 'center' }}>First time or forgot your password? Get an email code</Text>
           </Pressable>
@@ -116,7 +116,7 @@ export default function MemberLoginScreen({ navigation }: NativeStackScreenProps
       ) : step === 'email' ? (
         <>
           <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
-          <Button title="Send Code" onPress={send} busy={busy} />
+          <Button pill title="Send Code" onPress={send} busy={busy} />
           <Pressable accessibilityRole="link" onPress={haveCode} style={{ alignItems: 'center', padding: 8 }}>
             <Text style={{ color: colors.accent, fontWeight: '600' }}>I already have a code</Text>
           </Pressable>
@@ -141,8 +141,8 @@ export default function MemberLoginScreen({ navigation }: NativeStackScreenProps
             textContentType="oneTimeCode"
             autoFocus
           />
-          <Button title="Sign In" onPress={signIn} busy={busy} disabled={!isCompleteCode(code)} />
-          <Button small kind="secondary" title={resendLabel(waiting)} onPress={send} disabled={waiting > 0 || busy} />
+          <Button pill title="Sign In" onPress={signIn} busy={busy} disabled={!isCompleteCode(code)} />
+          <Button pill small kind="secondary" title={resendLabel(waiting)} onPress={send} disabled={waiting > 0 || busy} />
           <Pressable accessibilityRole="link" onPress={() => goTo('email')} style={{ alignItems: 'center', padding: 8 }}>
             <Text style={{ color: colors.muted, fontWeight: '600' }}>Use a different email</Text>
           </Pressable>

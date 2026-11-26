@@ -5,11 +5,12 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { MembershipSummary, type ReceiptData } from '@neofit/core';
 import { dateOfIso, longDate, pesoText, shortDate, todayText } from '../../format';
 import { dateTile } from '../../historyView';
-import { currentPaymentId, groupByYear, periodRemaining, renewalPrice, splitPlan } from '../../memberView';
+import { currentPaymentId, groupByYear, periodRemaining, planRate, renewalPrice, splitPlan, type RatePeriod } from '../../memberView';
 import type { MemberStackParams } from '../../navigation/types';
 import { notify } from '../../platform/confirm';
 import { messageOf, useAsync, useAuthState, useServices } from '../../state';
-import { Badge, Body, Button, Card, GroupHeader, Loading, Notice, PageRow, Row, Screen, StatusTone, Title, colors, statusColor } from '../../ui';
+import { Badge, Body, Button, Card, GroupHeader, Loading, Notice, Row, Screen, StatusTone, Title, colors, statusColor } from '../../ui';
+import { NewsCard, PaymentRow, PeriodSwitch, RateCard, Ticket, TicketLine } from './parts';
 
 function useMemberAccountId(): string {
   const state = useAuthState();
@@ -49,6 +50,7 @@ export function MemberHomeScreen() {
   const tone = statusColor(status);
   const plan = splitPlan(account.plan);
   const remaining = periodRemaining(account, data.data?.last ?? null, today);
+  const start = data.data?.last?.periodStart ?? account.joinedDate;
   const price = summary.needsRenewalNotice ? renewalPrice(account.plan, data.data?.rates ?? []) : null;
 
   return (
@@ -73,7 +75,17 @@ export function MemberHomeScreen() {
         <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(remaining * 100) }} style={{ height: 8, backgroundColor: colors.surface2, borderRadius: 999, overflow: 'hidden' }}>
           <View style={{ width: `${remaining * 100}%`, height: '100%', backgroundColor: tone }} />
         </View>
-        <Row><Body muted>Plan ends</Body><Body strong>{longDate(account.expiryDate)}</Body></Row>
+        <View style={{ flexDirection: 'row', backgroundColor: colors.surface2, borderRadius: 12, paddingVertical: 12 }}>
+          <View style={{ flex: 1, paddingHorizontal: 14, gap: 2 }}>
+            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700' }}>{start && start > today ? 'Starts' : 'Started'}</Text>
+            <Text style={{ color: colors.text, fontSize: 15, fontWeight: '800' }}>{shortDate(start)}</Text>
+          </View>
+          <View style={{ width: 1, backgroundColor: colors.border }} />
+          <View style={{ flex: 1, paddingHorizontal: 14, gap: 2, alignItems: 'flex-end' }}>
+            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700' }}>{status === 'Expired' ? 'Plan ended' : 'Plan ends'}</Text>
+            <Text style={{ color: colors.text, fontSize: 15, fontWeight: '800' }}>{shortDate(account.expiryDate)}</Text>
+          </View>
+        </View>
       </Card>
 
       {summary.needsRenewalNotice ? (
@@ -85,21 +97,17 @@ export function MemberHomeScreen() {
 
       {data.data?.last ? (
         <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Receipt', { paymentId: data.data!.last!.id })}>
-          <Card>
-            <Text style={{ color: colors.muted, fontWeight: '700' }}>LAST PAYMENT</Text>
-            <Row><Body strong>{pesoText(data.data.last.amount)}</Body><Body muted>{shortDate(dateOfIso(data.data.last.paidAt))}</Body></Row>
-            <Text style={{ color: colors.accent }}>View receipt ›</Text>
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 }}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '800' }}>Last payment · {shortDate(dateOfIso(data.data.last.paidAt))}</Text>
+              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '900' }}>{pesoText(data.data.last.amount)}</Text>
+            </View>
+            <Text style={{ color: colors.accent, fontWeight: '800' }}>Receipt ›</Text>
           </Card>
         </Pressable>
       ) : null}
 
-      {data.data?.news ? (
-        <Card>
-          <Text style={{ color: colors.muted, fontWeight: '700' }}>LATEST NEWS</Text>
-          <Body strong>{data.data.news.title}</Body>
-          <Body muted>{data.data.news.body}</Body>
-        </Card>
-      ) : null}
+      {data.data?.news ? <NewsCard label="Latest news" title={data.data.news.title} body={data.data.news.body} date={shortDate(dateOfIso(data.data.news.postedAt))} /> : null}
     </Screen>
   );
 }
@@ -120,8 +128,8 @@ export function MemberPaymentsScreen() {
       {payments.error ? <Notice kind="error">{payments.error}</Notice> : null}
       {payments.loading && !payments.data ? <Loading /> : null}
       {payments.data ? (
-        <Card>
-          <Row><Body muted>Paid this year</Body><Text style={{ color: colors.accent, fontSize: 22, fontWeight: '800' }}>{pesoText(thisYear.reduce((s, p) => s + p.amount, 0))}</Text></Row>
+        <Card style={{ backgroundColor: colors.accentSoft, borderColor: 'transparent' }}>
+          <Row><Body strong>Paid this year</Body><Text style={{ color: colors.accent, fontSize: 24, fontWeight: '900' }}>{pesoText(thisYear.reduce((s, p) => s + p.amount, 0))}</Text></Row>
         </Card>
       ) : null}
       {payments.data?.length === 0 ? <Body muted>No payments yet.</Body> : null}
@@ -130,13 +138,13 @@ export function MemberPaymentsScreen() {
           {/* A year heading only helps once there is more than one year. */}
           {groups.length > 1 ? <GroupHeader title={g.year} detail={`${g.items.length} ${g.items.length === 1 ? 'payment' : 'payments'}`} total={pesoText(g.total)} /> : null}
           {g.items.map((p) => (
-            <PageRow
+            <PaymentRow
               key={p.id}
               date={dateTile(dateOfIso(p.paidAt))}
               amount={pesoText(p.amount)}
-              detail={`${shortDate(p.periodStart)} – ${shortDate(p.periodEnd)}`}
-              extra={`Receipt ${p.receiptNo}`}
-              badge={p.id === currentId ? { text: 'Current', tone: 'ok' } : undefined}
+              period={`${shortDate(p.periodStart)} – ${shortDate(p.periodEnd)}`}
+              receiptNo={p.receiptNo}
+              current={p.id === currentId}
               onPress={() => navigation.navigate('Receipt', { paymentId: p.id })}
             />
           ))}
@@ -180,27 +188,36 @@ export function ReceiptScreen({ route }: NativeStackScreenProps<MemberStackParam
     }
   };
 
+  const plan = splitPlan(receipt.plan);
+
   return (
     <Screen>
-      <Title sub="NeoFit Fitness Gym">Receipt</Title>
-      <Card>
-        <Text style={{ color: colors.accent, fontSize: 34, fontWeight: '800' }}>{pesoText(receipt.amount)}</Text>
-        <Body muted>Receipt no. {receipt.receiptNo}</Body>
-        <Row><Body muted>Date paid</Body><Body strong>{longDate(receipt.paidOn)}</Body></Row>
-        <Row><Body muted>Member</Body><Body strong>{receipt.memberName}</Body></Row>
-        <Row><Body muted>Plan</Body><View style={{ flex: 1, alignItems: 'flex-end' }}><Body strong>{receipt.plan}</Body></View></Row>
-        <Row><Body muted>Period</Body><Body strong>{shortDate(receipt.periodStart)} – {shortDate(receipt.periodEnd)}</Body></Row>
-        <Row><Body muted>Paid at</Body><Body strong>NeoFit front desk</Body></Row>
-      </Card>
+      {/* The title is the top bar's; the ticket starts with the gym's name. */}
+      <Ticket amount={pesoText(receipt.amount)} receiptNo={receipt.receiptNo}>
+        <TicketLine label="Date paid" value={longDate(receipt.paidOn)} first />
+        <TicketLine label="Member" value={receipt.memberName} />
+        <TicketLine label="Plan" value={plan.title} detail={plan.detail} />
+        <TicketLine label="Period" value={`${shortDate(receipt.periodStart)} – ${shortDate(receipt.periodEnd)}`} />
+        <TicketLine label="Paid at" value="NeoFit front desk" />
+      </Ticket>
       <Body muted>This is a payment acknowledgment, not an official receipt of the Bureau of Internal Revenue.</Body>
-      <Button title="Save as PDF" onPress={() => run('pdf')} busy={busy === 'pdf'} />
-      <Button title="Share" kind="secondary" onPress={() => run('share')} busy={busy === 'share'} />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1 }}><Button pill title="Save as PDF" onPress={() => run('pdf')} busy={busy === 'pdf'} /></View>
+        <View style={{ flex: 1 }}><Button pill title="Share" kind="secondary" onPress={() => run('share')} busy={busy === 'share'} /></View>
+      </View>
     </Screen>
   );
 }
 
+const PERIOD_NOUN: Record<RatePeriod, string> = { monthly: 'month', semi: 'half month', daily: 'day' };
+
+/** One price per plan for the chosen period, with the member's own plan marked, then the announcements. */
 export function MemberRatesScreen() {
   const { members } = useServices();
+  const state = useAuthState();
+  const mine = state.kind === 'member' ? planRate(state.account.plan) : null;
+  const [chosen, setChosen] = useState<RatePeriod>();
+  const period = chosen ?? mine?.period ?? 'monthly';
   const data = useAsync(async () => {
     const [rates, news] = await Promise.all([members.rates(), members.announcements()]);
     return { rates, news };
@@ -211,21 +228,20 @@ export function MemberRatesScreen() {
       <Title sub="Official prices and announcements">Rates & News</Title>
       {data.error ? <Notice kind="error">{data.error}</Notice> : null}
       {data.loading && !data.data ? <Loading /> : null}
+      {data.data ? <PeriodSwitch value={period} onChange={setChosen} /> : null}
       {data.data?.rates.map((r) => (
-        <Card key={`${r.category}|${r.type}`}>
-          <Body strong>{r.category}</Body>
-          <Body muted>{r.type}</Body>
-          <Row><Body muted>Monthly</Body><Body strong>{pesoText(r.monthly)}</Body></Row>
-          <Row><Body muted>Semi-monthly</Body><Body strong>{pesoText(r.semi)}</Body></Row>
-          <Row><Body muted>Daily</Body><Body strong>{pesoText(r.daily)}</Body></Row>
-        </Card>
+        <RateCard
+          key={`${r.category}|${r.type}`}
+          name={r.category}
+          detail={r.type}
+          price={pesoText(r[period])}
+          mine={mine?.category === r.category && mine.type === r.type}
+        />
       ))}
+      {data.data ? <Body muted>Prices per {PERIOD_NOUN[period]}. Pay at the front desk.</Body> : null}
+      {data.data?.news.length ? <Text style={{ color: colors.accent, fontWeight: '900', marginTop: 6 }}>News</Text> : null}
       {data.data?.news.map((n) => (
-        <Card key={n.id}>
-          <Row><Body strong>{n.title}</Body></Row>
-          <Body muted>{shortDate(dateOfIso(n.postedAt))}</Body>
-          <Body>{n.body}</Body>
-        </Card>
+        <NewsCard key={n.id} title={n.title} body={n.body} date={shortDate(dateOfIso(n.postedAt))} />
       ))}
     </Screen>
   );

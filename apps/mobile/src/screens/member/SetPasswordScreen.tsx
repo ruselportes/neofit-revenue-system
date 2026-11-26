@@ -40,7 +40,7 @@ export default function SetPasswordScreen() {
       {error ? <Notice kind="error">{error}</Notice> : null}
       <Field label="New password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" textContentType="newPassword" />
       <Field label="Type it again" value={again} onChangeText={setAgain} secureTextEntry autoComplete="new-password" textContentType="newPassword" onSubmitEditing={save} />
-      <Button title="Save Password" onPress={save} busy={busy} />
+      <Button pill title="Save Password" onPress={save} busy={busy} />
       <Pressable accessibilityRole="link" onPress={() => auth.signOut()} style={{ alignItems: 'center', padding: 12 }}>
         <Text style={{ color: colors.muted, fontWeight: '600' }}>Sign out</Text>
       </Pressable>

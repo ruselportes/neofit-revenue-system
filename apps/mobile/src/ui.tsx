@@ -106,6 +106,7 @@ export function Button({
   busy = false,
   disabled = false,
   small = false,
+  pill = false,
 }: {
   title: string;
   onPress: () => void;
@@ -113,6 +114,8 @@ export function Button({
   busy?: boolean;
   disabled?: boolean;
   small?: boolean;
+  /** The member screens' rounded button with a raised lower edge; the label is written as given. */
+  pill?: boolean;
 }) {
   const off = disabled || busy;
   return (
@@ -126,6 +129,9 @@ export function Button({
         kind === 'primary' && { backgroundColor: colors.accent },
         kind === 'secondary' && { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border },
         kind === 'danger' && { backgroundColor: tint(colors.danger, 0.1), borderWidth: 1, borderColor: tint(colors.danger, 0.5) },
+        pill && styles.buttonPill,
+        pill && kind === 'primary' && { borderBottomColor: '#24A46E' },
+        pill && kind === 'secondary' && { borderBottomColor: '#0F1524' },
         off && { opacity: 0.5 },
         pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
       ]}
@@ -137,11 +143,12 @@ export function Button({
           style={[
             styles.buttonText,
             kind === 'primary' && styles.buttonTextPrimary,
+            pill && { letterSpacing: 0, fontWeight: '900' },
             small && { fontSize: 14 },
             kind === 'danger' && { color: colors.danger },
           ]}
         >
-          {kind === 'primary' ? title.toUpperCase() : title}
+          {kind === 'primary' && !pill ? title.toUpperCase() : title}
         </Text>
       )}
     </Pressable>
@@ -536,6 +543,7 @@ const styles = StyleSheet.create({
   body: { color: colors.text, fontSize: 16, lineHeight: 22 },
   button: { minHeight: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
   buttonSmall: { minHeight: 42, borderRadius: 12, paddingHorizontal: 14 },
+  buttonPill: { borderRadius: 999, borderBottomWidth: 4 },
   buttonText: { color: colors.text, fontSize: 16, fontWeight: '700' },
   buttonTextPrimary: { color: colors.accentText, fontWeight: '900', letterSpacing: 1.2 },
   input: { minHeight: 54, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface2, color: colors.text, paddingHorizontal: 16, fontSize: 16 },

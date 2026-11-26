@@ -62,10 +62,10 @@ export default function MemberAccountScreen() {
         <Field label="Current password" value={current} onChangeText={setCurrent} secureTextEntry autoComplete="password" />
         <Field label="New password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" />
         <Field label="Type the new one again" value={again} onChangeText={setAgain} secureTextEntry autoComplete="new-password" />
-        <Button small kind="secondary" title="Change password" onPress={change} busy={busy} disabled={!current || !password || !again} />
+        <Button pill small kind="secondary" title="Change password" onPress={change} busy={busy} disabled={!current || !password || !again} />
       </Card>
 
-      <Button title="Sign Out" kind="danger" onPress={signOut} />
+      <Button pill title="Sign Out" kind="danger" onPress={signOut} />
       <VersionLabel />
     </Screen>
   );
