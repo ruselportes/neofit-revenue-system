@@ -25,6 +25,7 @@ export type MemberTabParams = {
   Home: undefined;
   Payments: undefined;
   Rates: undefined;
+  Account: undefined;
 };
 
 export type { ReviewSession };

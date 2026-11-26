@@ -1,4 +1,4 @@
-import { isAuthRetryableFetchError, type AuthError as SupabaseAuthError, type SupabaseClient } from '@supabase/supabase-js';
+import { isAuthRetryableFetchError, type AuthError as SupabaseAuthError, type SupabaseClient, type User } from '@supabase/supabase-js';
 import type { MemberRepository, ProfileRepository } from '../cloud/repositories';
 import type { MemberAccount, Profile } from '../cloud/types';
 import { cleanCode, isCompleteCode } from '../memberCode';
@@ -8,7 +8,8 @@ export type AuthState =
   | { kind: 'loading' }
   | { kind: 'signedOut' }
   | { kind: 'staff'; profile: Profile }
-  | { kind: 'member'; account: MemberAccount };
+  /** needsPassword: the member must create a password before using the app (first time, or after an email code). */
+  | { kind: 'member'; account: MemberAccount; needsPassword?: boolean };
 
 /** A sign-in problem the user can understand; the message is shown as is. */
 export class AuthError extends Error {
@@ -26,6 +27,9 @@ export interface IdentityCache {
 }
 
 const IDENTITY_KEY = 'neofit_last_identity';
+/** Holds the user id of a member who signed in with a code and has not saved the new password yet. */
+const PASSWORD_PENDING_KEY = 'neofit_password_pending';
+const CONNECTION = 'Cannot reach the server. Check your connection and try again.';
 
 type Identity = { userId: string; state: Extract<AuthState, { kind: 'staff' | 'member' }> };
 type Listener = (state: AuthState) => void;
@@ -88,7 +92,49 @@ export class AuthService {
   async signIn(email: string, password: string): Promise<void> {
     const { data, error } = await this.client.auth.signInWithPassword({ email: email.trim(), password });
     if (error || !data.user) throw new AuthError(error?.message === 'Invalid login credentials' ? 'Wrong email or password.' : (error?.message ?? 'Could not sign in.'));
-    await this.resolve(data.user.id, 'staff');
+    await this.resolve(data.user, 'staff');
+  }
+
+  /**
+   * A member's everyday sign-in. A wrong password and an unknown address give the same message, so the screen does not
+   * reveal who is a member. A staff account is refused here, as with the code.
+   */
+  async signInMember(email: string, password: string): Promise<void> {
+    let result;
+    try {
+      result = await this.client.auth.signInWithPassword({ email: email.trim(), password });
+    } catch {
+      throw new AuthError(CONNECTION);
+    }
+    const { data, error } = result;
+    if (error || !data.user) {
+      if (error && this.couldBeTemporary(error)) throw new AuthError(CONNECTION);
+      if (error?.status === 429) throw new AuthError('Too many tries. Wait a minute and try again.');
+      throw new AuthError('Wrong email or password.');
+    }
+    // The password just worked, so there is nothing left to create.
+    await this.cache?.removeItem(PASSWORD_PENDING_KEY).catch(() => undefined);
+    await this.resolve(data.user, 'member', false);
+  }
+
+  /** Saves the password a member creates after signing in with a code, and lets them into the app. */
+  async setMemberPassword(newPassword: string): Promise<void> {
+    if (this.state.kind !== 'member') throw new AuthError('Sign in first.');
+    const account = this.state.account;
+    const userId = await this.savePassword(newPassword);
+    await this.cache?.removeItem(PASSWORD_PENDING_KEY).catch(() => undefined);
+    await this.confirm(userId, { kind: 'member', account, needsPassword: false });
+  }
+
+  /** A signed-in member changes the password. The current one is checked first, so a phone left open is not enough. */
+  async changeMemberPassword(currentPassword: string, newPassword: string): Promise<void> {
+    this.checkLength(newPassword);
+    const { data } = await this.client.auth.getSession();
+    const email = data.session?.user.email;
+    if (!email) throw new AuthError(CONNECTION);
+    const { error } = await this.client.auth.signInWithPassword({ email, password: currentPassword });
+    if (error) throw new AuthError(this.couldBeTemporary(error) ? CONNECTION : 'Your current password is wrong.');
+    await this.savePassword(newPassword);
   }
 
   /**
@@ -113,7 +159,7 @@ export class AuthService {
   async verifyMemberCode(email: string, code: string): Promise<void> {
     const token = cleanCode(code);
     if (!isCompleteCode(token)) throw new AuthError('Enter the full code from the email.');
-    const connection = new AuthError('Cannot reach the server. Check your connection and try again.');
+    const connection = new AuthError(CONNECTION);
 
     let result;
     try {
@@ -126,7 +172,10 @@ export class AuthService {
       if (error && this.couldBeTemporary(error)) throw connection;
       throw new AuthError('That code is wrong or has expired. Ask for a new one.');
     }
-    await this.resolve(data.user.id, 'member');
+    // A code means "first time" or "forgot my password": either way a new password is created next. Noted on the phone
+    // first, so closing the app does not skip that step.
+    await this.cache?.setItem(PASSWORD_PENDING_KEY, data.user.id).catch(() => undefined);
+    await this.resolve(data.user, 'member', true);
   }
 
   /** Called with the address of an opened sign-in link. Returns false if it is not a sign-in link. */
@@ -135,7 +184,7 @@ export class AuthService {
     if (!tokens) return false;
     const { data, error } = await this.client.auth.setSession({ access_token: tokens.accessToken, refresh_token: tokens.refreshToken });
     if (error || !data.user) throw new AuthError('This sign-in link has expired. Ask for a new one.');
-    await this.resolve(data.user.id, 'member');
+    await this.resolve(data.user, 'member');
     return true;
   }
 
@@ -145,7 +194,7 @@ export class AuthService {
   }
 
   async changePassword(newPassword: string): Promise<void> {
-    if (newPassword.length < 8) throw new AuthError('The new password must be at least 8 characters.');
+    this.checkLength(newPassword);
     const { error } = await this.client.auth.updateUser({ password: newPassword });
     if (error) throw new AuthError(error.message);
   }
@@ -153,10 +202,33 @@ export class AuthService {
   /** Reloads the signed-in person's profile or membership, for example after editing the name. */
   async refresh(): Promise<void> {
     const { data } = await this.client.auth.getUser();
-    if (data.user) await this.resolve(data.user.id);
+    if (data.user) await this.resolve(data.user);
   }
 
   // ---- inside ----
+
+  private checkLength(password: string): void {
+    if (password.length < 8) throw new AuthError('The new password must be at least 8 characters.');
+  }
+
+  /** Writes the password and marks the account as having one. Returns the user id. */
+  private async savePassword(password: string): Promise<string> {
+    this.checkLength(password);
+    const data = { has_password: true };
+    let result = await this.client.auth.updateUser({ password, data });
+    // "Same as the old password" is fine: that is the password they want. Only the mark still has to be saved.
+    if (result.error?.code === 'same_password') result = await this.client.auth.updateUser({ data });
+    const { error } = result;
+    if (error) throw new AuthError(this.couldBeTemporary(error) ? CONNECTION : error.message);
+    if (!result.data.user) throw new AuthError(CONNECTION);
+    return result.data.user.id;
+  }
+
+  private async needsPassword(user: User): Promise<boolean> {
+    if (user.user_metadata?.has_password !== true) return true;
+    const pending = await this.cache?.getItem(PASSWORD_PENDING_KEY).catch(() => null);
+    return pending === user.id;
+  }
 
   /** Looks at the saved session and decides: signed in, signed out, or "cannot tell yet" (then the last identity is used). */
   private async restore(): Promise<void> {
@@ -169,7 +241,7 @@ export class AuthService {
     }
 
     try {
-      await this.resolve(data.session.user.id);
+      await this.resolve(data.session.user);
     } catch (err) {
       // Only our own refusals (disabled account, no access) end the sign-in. Anything else, such as no signal or a
       // slow server, says nothing about the account, so the last known identity is used and checked again later.
@@ -178,7 +250,8 @@ export class AuthService {
     }
   }
 
-  private async resolve(userId: string, expected?: 'staff' | 'member'): Promise<void> {
+  private async resolve(user: User, expected?: 'staff' | 'member', needsPassword?: boolean): Promise<void> {
+    const userId = user.id;
     const profile = await this.profiles.get(userId);
     if (profile) {
       if (!profile.isActive) {
@@ -193,7 +266,7 @@ export class AuthService {
     }
 
     const account = await this.members.accountForUser(userId);
-    if (account) return this.confirm(userId, { kind: 'member', account });
+    if (account) return this.confirm(userId, { kind: 'member', account, needsPassword: needsPassword ?? (await this.needsPassword(user)) });
 
     await this.signOut();
     throw new AuthError('This account does not have access to the app.');
@@ -228,6 +301,7 @@ export class AuthService {
   private async forget(): Promise<void> {
     this.offline = false;
     await this.cache?.removeItem(IDENTITY_KEY).catch(() => undefined);
+    await this.cache?.removeItem(PASSWORD_PENDING_KEY).catch(() => undefined);
     this.set({ kind: 'signedOut' });
   }
 

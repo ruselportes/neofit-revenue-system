@@ -79,7 +79,8 @@ describe('signing a member in with the code', () => {
     await t.auth.verifyMemberCode(' rose@example.com ', '123 456');
     expect(t.client.auth.verifyOtp).toHaveBeenCalledWith({ email: 'rose@example.com', token: '123456', type: 'email' });
     expect(t.auth.current().kind).toBe('member');
-    expect(t.cache.data.size).toBe(1);
+    // Who they are, and that a password still has to be created.
+    expect([...t.cache.data.keys()].sort()).toEqual(['neofit_last_identity', 'neofit_password_pending']);
   });
 
   it('says so clearly for a wrong or expired code, and does not sign in', async () => {

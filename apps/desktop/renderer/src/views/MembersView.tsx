@@ -297,7 +297,7 @@ function InviteSection({ member: initial, onInvited }: { member: Member; onInvit
           </label>
           <p className="hint" style={{ margin: 0 }}>
             The member gets an email with a sign-in code. They install the NeoFit app, choose Member sign in, enter this email address,
-            tap "I already have a code" and type the code from the email. They will see their plan, payments, receipts, rates and
+            tap "Get an email code", then "I already have a code", type the code from the email and create a password. They will see their plan, payments, receipts, rates and
             announcements, and can only view them: renewals are paid at the front desk.
           </p>
           {result && <Notice kind={result.kind}>{result.text}</Notice>}

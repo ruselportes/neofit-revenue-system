@@ -7,7 +7,7 @@ import { dateOfIso, longDate, pesoText, shortDate, todayText } from '../../forma
 import { dateTile } from '../../historyView';
 import { currentPaymentId, groupByYear, periodRemaining, renewalPrice, splitPlan } from '../../memberView';
 import type { MemberStackParams } from '../../navigation/types';
-import { confirmAsync, notify } from '../../platform/confirm';
+import { notify } from '../../platform/confirm';
 import { messageOf, useAsync, useAuthState, useServices } from '../../state';
 import { Badge, Body, Button, Card, GroupHeader, Loading, Notice, PageRow, Row, Screen, StatusTone, Title, colors, statusColor } from '../../ui';
 
@@ -200,7 +200,7 @@ export function ReceiptScreen({ route }: NativeStackScreenProps<MemberStackParam
 }
 
 export function MemberRatesScreen() {
-  const { members, auth } = useServices();
+  const { members } = useServices();
   const data = useAsync(async () => {
     const [rates, news] = await Promise.all([members.rates(), members.announcements()]);
     return { rates, news };
@@ -227,13 +227,6 @@ export function MemberRatesScreen() {
           <Body>{n.body}</Body>
         </Card>
       ))}
-      <Button
-        title="Sign Out"
-        kind="danger"
-        onPress={async () => {
-          if (await confirmAsync('Sign out?', 'You can sign in again with a code sent to your email.', 'Sign out', true)) await auth.signOut();
-        }}
-      />
     </Screen>
   );
 }

@@ -7,6 +7,8 @@ import { DarkTheme, NavigationContainer, createNavigationContainerRef } from '@r
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from '../screens/auth/LoginScreen';
 import MemberLoginScreen from '../screens/auth/MemberLoginScreen';
+import MemberAccountScreen from '../screens/member/MemberAccountScreen';
+import SetPasswordScreen from '../screens/member/SetPasswordScreen';
 import { MemberHomeScreen, MemberPaymentsScreen, MemberRatesScreen, ReceiptScreen } from '../screens/member/MemberScreens';
 import DashboardScreen from '../screens/owner/DashboardScreen';
 import { OwnerHistoryScreen, UploadDetailScreen } from '../screens/owner/OwnerHistoryScreens';
@@ -115,6 +117,7 @@ function MemberTabs() {
       <MemberTab.Screen name="Home" component={MemberHomeScreen} options={{ tabBarIcon: icon('home') }} />
       <MemberTab.Screen name="Payments" component={MemberPaymentsScreen} options={{ tabBarIcon: icon('receipt') }} />
       <MemberTab.Screen name="Rates" component={MemberRatesScreen} options={{ title: 'Rates & News', tabBarIcon: icon('pricetags') }} />
+      <MemberTab.Screen name="Account" component={MemberAccountScreen} options={{ tabBarIcon: icon('person-circle') }} />
     </MemberTab.Navigator>
   );
 }
@@ -150,7 +153,7 @@ export default function RootNavigator() {
   let content;
   if (state.kind === 'loading') content = <Screen><Loading variant="page" /></Screen>;
   else if (state.kind === 'signedOut') content = <AuthNavigator />;
-  else if (state.kind === 'member') content = <MemberNavigator />;
+  else if (state.kind === 'member') content = state.needsPassword ? <SetPasswordScreen /> : <MemberNavigator />;
   else content = state.profile.role === 'owner' ? <OwnerTabs /> : <StaffTabs />;
 
   return (

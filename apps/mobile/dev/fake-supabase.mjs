@@ -71,9 +71,13 @@ function sessionFor(email) {
   const token = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: id, email, role: 'authenticated', aud: 'authenticated', exp })}.sig`;
   return {
     access_token: token, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: randomUUID(),
-    user: { id, email, aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() },
+    user: { id, email, aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: { ...metadata[email] }, created_at: new Date().toISOString() },
   };
 }
+
+// Changes made while the fake runs: new passwords, and the "has a password" mark the app saves.
+const passwords = {};
+const metadata = { 'member@neofit.test': { has_password: true } };
 
 const cors = {
   'access-control-allow-origin': '*',
@@ -136,13 +140,19 @@ createServer(async (req, res) => {
 
   if (url.pathname === '/auth/v1/token') {
     const { email, password } = (await body(req)) ?? {};
-    if (!users[email] || password !== PASSWORD) return send(res, 400, { error: 'invalid_grant', error_description: 'Invalid login credentials', code: 400, msg: 'Invalid login credentials' });
+    if (!users[email] || password !== (passwords[email] ?? PASSWORD)) return send(res, 400, { error: 'invalid_grant', error_description: 'Invalid login credentials', code: 400, msg: 'Invalid login credentials' });
     return send(res, 200, sessionFor(email));
   }
   if (url.pathname === '/auth/v1/user') {
     const id = bearerUser(req);
     const email = Object.keys(users).find((e) => users[e] === id);
-    return email ? send(res, 200, sessionFor(email).user) : send(res, 401, { message: 'invalid JWT' });
+    if (!email) return send(res, 401, { message: 'invalid JWT' });
+    if (req.method === 'PUT') {
+      const change = (await body(req)) ?? {};
+      if (change.password) passwords[email] = change.password;
+      if (change.data) metadata[email] = { ...metadata[email], ...change.data };
+    }
+    return send(res, 200, sessionFor(email).user);
   }
   if (url.pathname === '/auth/v1/logout') return send(res, 204);
   if (url.pathname === '/auth/v1/otp') return send(res, 200, {});
