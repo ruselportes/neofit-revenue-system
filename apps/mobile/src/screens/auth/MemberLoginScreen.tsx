@@ -5,6 +5,7 @@ import { CODE_MAX_LENGTH, cleanCode, isCompleteCode, resendLabel, resendSecondsL
 import type { AuthStackParams } from '../../navigation/types';
 import { messageOf, useServices } from '../../state';
 import { Body, Button, Field, Logo, Notice, Screen, Title, colors } from '../../ui';
+import { VersionLabel } from '../../UpdateModal';
 
 /**
  * Member sign-in in two steps: type the email, then type the code that was emailed. There is no link to
@@ -81,7 +82,7 @@ export default function MemberLoginScreen({ navigation }: NativeStackScreenProps
   return (
     <Screen>
       <View style={{ alignItems: 'center', paddingTop: 36, paddingBottom: 12 }}>
-        <Logo width={170} />
+        <Logo width={210} />
       </View>
       <Title sub="No password needed.">Member sign in</Title>
       {error ? <Notice kind="error">{error}</Notice> : null}
@@ -121,8 +122,9 @@ export default function MemberLoginScreen({ navigation }: NativeStackScreenProps
       )}
 
       <Pressable accessibilityRole="link" onPress={() => navigation.navigate('Login')} style={{ alignItems: 'center', padding: 12 }}>
-        <Text style={{ color: colors.accent, fontWeight: '600' }}>Staff sign in</Text>
+        <Text style={{ color: colors.accent, fontWeight: '600' }}>Staff and owner sign in</Text>
       </Pressable>
+      <VersionLabel />
     </Screen>
   );
 }

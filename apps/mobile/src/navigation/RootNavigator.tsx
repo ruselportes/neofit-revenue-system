@@ -56,8 +56,9 @@ const AuthStack = createNativeStackNavigator<AuthStackParams>();
 function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={headerless}>
-      <AuthStack.Screen name="Login" component={LoginScreen} />
+      {/* The first screen listed opens first: members are most of the people signing in. */}
       <AuthStack.Screen name="MemberLogin" component={MemberLoginScreen} />
+      <AuthStack.Screen name="Login" component={LoginScreen} />
     </AuthStack.Navigator>
   );
 }

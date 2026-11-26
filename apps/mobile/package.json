@@ -4,6 +4,7 @@
   "private": true,
   "main": "index.ts",
   "scripts": {
+    "publish:update": "node scripts/publish-update.mjs",
     "start": "expo start",
     "android": "expo start --android",
     "web": "expo start --web",

@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Modal, Platform, Text, View } from 'react-native';
 import * as Updates from 'expo-updates';
+import { versionText } from './appVersion';
 import { Skeleton, colors } from './ui';
 
-/** A small line saying which version is running: "1.0.0 · update 01a1df67" or "1.0.0 · installed version". */
+/** A small line saying which version is running: "Version 1.0.0.1", with the date once it came as an update. */
 export function VersionLabel() {
-  const update = Updates.isEmbeddedLaunch || !Updates.updateId ? 'installed version' : `update ${Updates.updateId.slice(0, 8)}`;
-  const when = Updates.createdAt && !Updates.isEmbeddedLaunch ? `, ${Updates.createdAt.toLocaleString()}` : '';
+  const when = Updates.createdAt && !Updates.isEmbeddedLaunch ? ` · ${Updates.createdAt.toLocaleDateString()}` : '';
   return (
     <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center', paddingVertical: 8 }}>
-      {`Version ${Updates.runtimeVersion || '1.0.0'} · ${update}${when}`}
+      {`Version ${versionText(Updates.runtimeVersion || '1.0.0')}${when}`}
     </Text>
   );
 }
