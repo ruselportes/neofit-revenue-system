@@ -71,7 +71,7 @@ export class MemberService {
         memberId: this.members.nextMemberId(),
         name: body.personName('name', 100),
         contact: body.contactNumber('contact', 20),
-        email: body.optionalEmail('email') ?? null,
+        email: body.email('email'),
         plan,
         status: MemberStatusPolicy.statusFor(start, coverage.end, this.today()),
         joinedDate: start,
@@ -98,7 +98,7 @@ export class MemberService {
     this.members.update(id, {
       name: body.has('name') ? body.personName('name', 100) : current.name,
       contact: body.has('contact') ? body.contactNumber('contact', 20) : current.contact,
-      email: body.has('email') ? (body.optionalEmail('email') ?? null) : current.email,
+      email: body.has('email') ? body.email('email') : current.email,
       plan,
       status: MemberStatusPolicy.statusFor(joinedDate, expiryDate, this.today()),
       joinedDate,

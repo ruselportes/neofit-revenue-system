@@ -179,7 +179,7 @@ function MemberForm({ member, rates, onClose, onSaved }: { member?: Member; rate
     if (problem) return setError(problem);
     setBusy(true);
     try {
-      const common = { name: cleanedName, contact: contact.trim(), email, address, plan: planText(plan), ...(photo ? { photo } : {}) };
+      const common = { name: cleanedName, contact: contact.trim(), email: email.trim(), address, plan: planText(plan), ...(photo ? { photo } : {}) };
       if (editing) {
         await api.members.update(member.id, { ...common, joinedDate: joined });
         onSaved(`${name} was updated.`);
@@ -223,8 +223,8 @@ function MemberForm({ member, rates, onClose, onSaved }: { member?: Member; rate
         </div>
         <div className="grid-2">
           <label className="field">
-            <span>Email (for the member app, optional)</span>
-            <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <span>Email (for the member app)</span>
+            <input className="input" type="email" placeholder="member@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} required />
           </label>
           <label className="field"><span>Address</span><input className="input" value={address} onChange={(e) => setAddress(e.target.value)} /></label>
         </div>

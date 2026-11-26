@@ -75,6 +75,13 @@ export class Body {
     return v;
   }
 
+  /** An email address that must be given: members sign in to the app with it. */
+  email(key: string): string {
+    const v = this.optionalEmail(key);
+    if (!v) throw new ValidationError("Enter the member's email address.");
+    return v;
+  }
+
   optionalDate(key: string): string | undefined {
     const v = this.data[key];
     if (v === undefined || v === null || v === '') return undefined;

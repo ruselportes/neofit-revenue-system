@@ -24,6 +24,30 @@ describe('contact number rule', () => {
   });
 });
 
+describe('members: an email is required', () => {
+  it('refuses a new member without one, and refuses clearing it later', async () => {
+    const api = await TestServer.start();
+    try {
+      const token = await api.login();
+      const member = { name: 'Rose Garcia', contact: '09171234567', plan: PLAN };
+      for (const email of [undefined, '', '   ']) {
+        const res = await api.request('POST', '/api/members', { ...member, email }, token);
+        expect(res.status).toBe(400);
+        expect(res.body.error).toMatch(/email/i);
+      }
+      expect((await api.request('GET', '/api/members', undefined, token)).body).toEqual([]);
+
+      const created = await api.request('POST', '/api/members', { ...member, email: 'rose@example.com' }, token);
+      expect(created.status).toBe(201);
+      const id = created.body.member.id;
+      expect((await api.request('PUT', `/api/members/${id}`, { email: '' }, token)).status).toBe(400);
+      expect((await api.request('PUT', `/api/members/${id}`, { name: 'Rose G. Santos' }, token)).status).toBe(200);
+    } finally {
+      await api.stop();
+    }
+  });
+});
+
 describe('members: name and contact are checked by the API', () => {
   it('refuses a name with digits and a contact with letters (the case seen on screen)', async () => {
     const api = await TestServer.start();
@@ -39,7 +63,7 @@ describe('members: name and contact are checked by the API', () => {
       expect(badContact.body.error).toMatch(/contact/i);
       expect((await api.request('GET', '/api/members', undefined, token)).body).toEqual([]);
 
-      const ok = await api.request('POST', '/api/members', { name: '  Rose   Garcia ', contact: '+63 917 123 4567', plan: PLAN }, token);
+      const ok = await api.request('POST', '/api/members', { name: '  Rose   Garcia ', contact: '+63 917 123 4567', email: 'rose@example.com', plan: PLAN }, token);
       expect(ok.status).toBe(201);
       expect(ok.body.member.name).toBe('Rose Garcia'); // extra spaces are tidied
     } finally {
@@ -51,7 +75,7 @@ describe('members: name and contact are checked by the API', () => {
     const api = await TestServer.start();
     try {
       const token = await api.login();
-      const created = await api.request('POST', '/api/members', { name: 'Rose Garcia', contact: '09171234567', plan: PLAN }, token);
+      const created = await api.request('POST', '/api/members', { name: 'Rose Garcia', contact: '09171234567', email: 'rose@example.com', plan: PLAN }, token);
       const id = created.body.member.id;
       expect((await api.request('PUT', `/api/members/${id}`, { name: 'Rose 99' }, token)).status).toBe(400);
       expect((await api.request('PUT', `/api/members/${id}`, { contact: 'abc' }, token)).status).toBe(400);

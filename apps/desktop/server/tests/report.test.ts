@@ -99,7 +99,7 @@ describe('GET /api/revenue/report', () => {
   afterEach(() => api.stop());
 
   it('downloads the report for a month', async () => {
-    await api.request('POST', '/api/members', { name: 'Ian', contact: '09171234567', plan: 'Regular Plan - Monthly (No Treadmill)' }, token);
+    await api.request('POST', '/api/members', { name: 'Ian', contact: '09171234567', email: 'ian@example.com', plan: 'Regular Plan - Monthly (No Treadmill)' }, token);
     const res = await api.download('/api/revenue/report?year=2026&month=11', token);
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('wordprocessingml.document');

@@ -14,6 +14,7 @@ async function until(check: () => boolean, ms = 2000): Promise<void> {
 const member = (over: object = {}) => ({
   name: 'Rose Garcia',
   contact: '09171234567',
+  email: 'rose@example.com',
   plan: 'Regular Plan - Monthly (No Treadmill)',
   ...over,
 });
@@ -223,8 +224,11 @@ describe('with a cloud connection', () => {
   });
 
   describe('member invites and publishing', () => {
+    const withoutEmail = () => api.container.database.connection.prepare('UPDATE members SET email = NULL').run();
+
     it('asks for an email address first', async () => {
       await api.request('POST', '/api/members', member(), token);
+      withoutEmail(); // a record saved before an email was required
       const res = await api.request('POST', '/api/members/1/invite', {}, token);
       expect(res.status).toBe(400);
       expect(res.body.error).toMatch(/email/i);
@@ -247,6 +251,7 @@ describe('with a cloud connection', () => {
 
     it('saves a new email address given with the invite', async () => {
       await api.request('POST', '/api/members', member(), token);
+      withoutEmail(); // a record saved before an email was required
       const res = await api.request('POST', '/api/members/1/invite', { email: 'rose@example.com' }, token);
       expect(res.status).toBe(200);
       expect(res.body.member.email).toBe('rose@example.com');
