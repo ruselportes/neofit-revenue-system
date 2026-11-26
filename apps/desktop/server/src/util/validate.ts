@@ -52,9 +52,10 @@ export class Body {
     return v;
   }
 
-  /** A required contact number (see contactProblem). */
+  /** An optional contact number: empty when not given, otherwise it must pass contactProblem. */
   contactNumber(key: string, max: number): string {
-    const v = this.string(key, max);
+    const v = this.optionalString(key, max) ?? '';
+    if (v === '') return v;
     const problem = contactProblem(v);
     if (problem) throw new ValidationError(problem);
     return v;

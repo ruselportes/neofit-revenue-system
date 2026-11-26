@@ -48,6 +48,25 @@ describe('members: an email is required', () => {
   });
 });
 
+describe('members: the contact number is optional', () => {
+  it('saves a member without one, lets it be cleared, and still checks one that is given', async () => {
+    const api = await TestServer.start();
+    try {
+      const token = await api.login();
+      const member = { name: 'Rose Garcia', email: 'rose@example.com', plan: PLAN };
+      const created = await api.request('POST', '/api/members', member, token);
+      expect(created.status).toBe(201);
+      expect(created.body.member.contact).toBe('');
+      const id = created.body.member.id;
+      expect((await api.request('PUT', `/api/members/${id}`, { contact: '09171234567' }, token)).body.contact).toBe('09171234567');
+      expect((await api.request('PUT', `/api/members/${id}`, { contact: '' }, token)).body.contact).toBe('');
+      expect((await api.request('PUT', `/api/members/${id}`, { contact: '0917' }, token)).status).toBe(400);
+    } finally {
+      await api.stop();
+    }
+  });
+});
+
 describe('members: name and contact are checked by the API', () => {
   it('refuses a name with digits and a contact with letters (the case seen on screen)', async () => {
     const api = await TestServer.start();

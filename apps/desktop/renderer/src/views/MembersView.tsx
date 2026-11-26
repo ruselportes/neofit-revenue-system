@@ -175,7 +175,7 @@ function MemberForm({ member, rates, onClose, onSaved }: { member?: Member; rate
     e.preventDefault();
     setError(undefined);
     const cleanedName = name.trim().replace(/\s+/g, ' ');
-    const problem = nameProblem(cleanedName) ?? contactProblem(contact);
+    const problem = nameProblem(cleanedName) ?? (contact.trim() ? contactProblem(contact.trim()) : null);
     if (problem) return setError(problem);
     setBusy(true);
     try {
@@ -207,7 +207,7 @@ function MemberForm({ member, rates, onClose, onSaved }: { member?: Member; rate
             <input className="input" value={name} onChange={(e) => setName(cleanName(e.target.value))} maxLength={100} autoComplete="off" required autoFocus />
           </label>
           <label className="field">
-            <span>Contact number</span>
+            <span>Contact number (optional)</span>
             <input
               className="input"
               type="tel"
@@ -217,7 +217,6 @@ function MemberForm({ member, rates, onClose, onSaved }: { member?: Member; rate
               onChange={(e) => setContact(cleanContact(e.target.value))}
               maxLength={20}
               autoComplete="off"
-              required
             />
           </label>
         </div>
@@ -343,7 +342,7 @@ function MemberDetails({ member, onClose, onEdit, onRenew, onInvited }: { member
         <dt>Status</dt><dd><StatusBadge status={member.status} /></dd>
         <dt>Joined</dt><dd>{formatDate(member.joinedDate)}</dd>
         <dt>Plan expires</dt><dd>{formatDate(member.expiryDate)}</dd>
-        <dt>Contact</dt><dd>{member.contact}</dd>
+        <dt>Contact</dt><dd>{member.contact || '—'}</dd>
         <dt>Address</dt><dd>{member.address || '—'}</dd>
         <dt>Last payment</dt>
         <dd>{last ? `${formatPeso(last.amount)} on ${formatDate(last.paidAt.slice(0, 10))} (receipt ${last.receiptNo})` : '—'}</dd>
