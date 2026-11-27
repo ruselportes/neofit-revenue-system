@@ -29,6 +29,15 @@ export function planRate(plan: string): { category: string; type: string; period
   };
 }
 
+/**
+ * Whether a rate card is the member's own plan, for the "Your plan" tag: the same category and treadmill choice, and only
+ * while the prices shown are for the period the member pays (a monthly member sees the tag under Monthly only).
+ */
+export function isOwnRate(plan: string, rate: { category: string; type: string }, shown: RatePeriod): boolean {
+  const mine = planRate(plan);
+  return mine.period === shown && mine.category === rate.category && mine.type === rate.type;
+}
+
 /** The price of the member's own plan from the official rates, for "Renew at the front desk: ₱700.00". Null when it cannot be matched. */
 export function renewalPrice(plan: string, rates: RateLike[]): number | null {
   const mine = planRate(plan);

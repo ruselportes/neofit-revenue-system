@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { MembershipSummary, type ReceiptData } from '@neofit/core';
 import { dateOfIso, longDate, pesoText, shortDate, todayText } from '../../format';
 import { dateTile } from '../../historyView';
-import { currentPaymentId, groupByYear, periodRemaining, planRate, renewalPrice, splitPlan, type RatePeriod } from '../../memberView';
+import { currentPaymentId, groupByYear, isOwnRate, periodRemaining, planRate, renewalPrice, splitPlan, type RatePeriod } from '../../memberView';
 import type { MemberStackParams } from '../../navigation/types';
 import { notify } from '../../platform/confirm';
 import { messageOf, useAsync, useAuthState, useServices } from '../../state';
@@ -215,9 +215,9 @@ const PERIOD_NOUN: Record<RatePeriod, string> = { monthly: 'month', semi: 'half 
 export function MemberRatesScreen() {
   const { members } = useServices();
   const state = useAuthState();
-  const mine = state.kind === 'member' ? planRate(state.account.plan) : null;
+  const plan = state.kind === 'member' ? state.account.plan : undefined;
   const [chosen, setChosen] = useState<RatePeriod>();
-  const period = chosen ?? mine?.period ?? 'monthly';
+  const period = chosen ?? (plan ? planRate(plan).period : 'monthly');
   const data = useAsync(async () => {
     const [rates, news] = await Promise.all([members.rates(), members.announcements()]);
     return { rates, news };
@@ -235,7 +235,7 @@ export function MemberRatesScreen() {
           name={r.category}
           detail={r.type}
           price={pesoText(r[period])}
-          mine={mine?.category === r.category && mine.type === r.type}
+          mine={plan !== undefined && isOwnRate(plan, r, period)}
         />
       ))}
       {data.data ? <Body muted>Prices per {PERIOD_NOUN[period]}. Pay at the front desk.</Body> : null}

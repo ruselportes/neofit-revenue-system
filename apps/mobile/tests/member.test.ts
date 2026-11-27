@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentPaymentId, groupByYear, periodRemaining, planRate, renewalPrice, splitPlan } from '../src/memberView';
+import { currentPaymentId, groupByYear, isOwnRate, periodRemaining, planRate, renewalPrice, splitPlan } from '../src/memberView';
 
 const RATES = [
   { category: 'Regular Plan', type: 'No Treadmill', monthly: 700, semi: 350, daily: 70 },
@@ -36,6 +36,22 @@ describe('which rate card is the member\'s own', () => {
     expect(planRate('Regular Plan - Monthly (No Treadmill)')).toEqual({ category: 'Regular Plan', type: 'No Treadmill', period: 'monthly' });
     expect(planRate('Student/Senior Plan - Semi-Monthly (With Treadmill)')).toEqual({ category: 'Student/Senior Plan', type: 'With Treadmill', period: 'semi' });
     expect(planRate('Regular Plan - Daily (No Treadmill)').period).toBe('daily');
+  });
+});
+
+describe('the "Your plan" tag', () => {
+  const plan = 'Regular Plan - Monthly (No Treadmill)';
+  const own = { category: 'Regular Plan', type: 'No Treadmill' };
+  it("shows on the member's own plan only under the period they pay", () => {
+    expect(isOwnRate(plan, own, 'monthly')).toBe(true);
+    expect(isOwnRate(plan, own, 'semi')).toBe(false);
+    expect(isOwnRate(plan, own, 'daily')).toBe(false);
+    expect(isOwnRate('Regular Plan - Daily (No Treadmill)', own, 'daily')).toBe(true);
+    expect(isOwnRate('Regular Plan - Semi-Monthly (No Treadmill)', own, 'monthly')).toBe(false);
+  });
+  it('never shows on another plan', () => {
+    expect(isOwnRate(plan, { category: 'Regular Plan', type: 'With Treadmill' }, 'monthly')).toBe(false);
+    expect(isOwnRate(plan, { category: 'Student/Senior Plan', type: 'No Treadmill' }, 'monthly')).toBe(false);
   });
 });
 
