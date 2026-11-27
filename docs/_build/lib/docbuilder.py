@@ -287,8 +287,10 @@ class DocBuilder:
         p = self.doc.add_paragraph(); self.fmt(p, before=18, after=6, line=1.0, first=0, align=L)
         p.paragraph_format.tab_stops.add_tab_stop(Inches(1.4)); p.paragraph_format.tab_stops.add_tab_stop(Inches(6.5), WD_TAB_ALIGNMENT.RIGHT)
         self.runs(p, f"**{col}\tDescription\tPage**")
+        # A list of tables that runs only a few entries past one page is set a little closer, so none is left alone.
+        before, line = (2, 1.2) if col == "Table No." and 25 <= len(entries) <= 30 else (4, 1.3)
         for label, name in entries:
-            p = self.doc.add_paragraph(); self.fmt(p, before=4, after=0, line=1.3, first=0, align=L)
+            p = self.doc.add_paragraph(); self.fmt(p, before=before, after=0, line=line, first=0, align=L)
             p.paragraph_format.left_indent = Inches(1.4); p.paragraph_format.first_line_indent = Inches(-1.4)
             p.paragraph_format.tab_stops.add_tab_stop(Inches(1.4))
             p.paragraph_format.tab_stops.add_tab_stop(Inches(6.5), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)

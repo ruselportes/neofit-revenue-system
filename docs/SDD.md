@@ -24,7 +24,7 @@ The purpose of this document is to describe the design of the system in enough d
 
 This document covers the whole of the Revenue Collection and Monitoring System with AI-Integrated Logbook Scanning, version 1.0, which consists of three parts:
 
-- **Mobile application** (React Native, Expo, TypeScript) for the staff, the owner and invited members. It captures logbook pages, reads them with a two-tier OCR engine (Google Gemini 2.5 Flash online, Google ML Kit offline), checks the amounts against NeoFit's rates, saves confirmed pages or queues them while offline, and shows the owner the revenue, the upload history and the staff accounts. Its member screens, which also run as a web version, show each member their own membership, payments and receipts, the rates and the announcements, and receive the renewal reminders.
+- **Mobile application** (React Native, Expo, TypeScript) for the staff, the owner and invited members. It captures logbook pages, reads them with a two-tier OCR engine (Google Gemini 2.5 Flash online, Google ML Kit offline), checks the amounts against NeoFit's rates, saves confirmed pages or queues them while offline, and shows the owner the revenue, the upload history and the staff accounts. Its member screens show each member their own membership, payments and receipts, the rates and the announcements, and receive the renewal reminders.
 - **Desktop application** (Electron, React, Vite, with a local Express API and a SQLite database) for the administrator at the gym's Windows computer. It manages members, their payments, rates, announcements and logbook entries, publishes the records that invited members may see, and computes revenue analytics and Word reports.
 - **Supabase cloud database** (PostgreSQL, Auth, Row-Level Security and Edge Functions), the shared record that connects the two applications and the members. Its Edge Functions send the member invites and the daily renewal reminders.
 
@@ -50,9 +50,9 @@ The table below defines the terms, acronyms and abbreviations used in this docum
 | Rate Table | NeoFit's official price list: regular or student/senior plan, with or without treadmill, per month, half-month or day. |
 | Offline Queue | Storage on the phone that holds confirmed pages until they can be uploaded to the cloud database. |
 | Reconciliation | Combining the revenue from the logbook scans and the member payments so that each payment is counted only once. |
-| Member Screens | The part of the mobile application for invited gym members: Home, Payments, and Rates and announcements. |
-| Invite | An email sent by Supabase Auth, at the administrator's request, that creates a member's sign-in account and contains a sign-in link. |
-| Email Link Sign-In | Signing in without a password: Supabase Auth emails a one-time link that signs the user in when it is opened. |
+| Member Screens | The part of the mobile application for invited gym members: Home, Payments, Rates and announcements, and Account. |
+| Invite | An email sent by Supabase Auth, at the administrator's request, that gives a member a sign-in account and contains a one-time code. |
+| Email Code | A one-time number that Supabase Auth emails to an invited member, used to sign in for the first time or after the password is forgotten. It works once and expires after one hour. |
 | Receipt | The record of one member payment, with a receipt number in the form YYYY-MMDD-NN. It acknowledges the payment and is not an official receipt of the Bureau of Internal Revenue (BIR). |
 | Renewal Reminder | A push notification that tells a member that the plan expires in 7, 3 or 1 days. |
 | Push Token | The address of one phone in the Expo Push Service, used to send it push notifications. |
@@ -119,7 +119,7 @@ The table below lists the deployable components of the system, the technology of
 
 | Component | Technology | Runs On | Responsibility |
 |---|---|---|---|
-| Mobile application | React Native, Expo SDK, TypeScript | Android phones of the staff, the owner and members; members' web browsers | Capture, reading, review and upload of pages; owner monitoring; member screens |
+| Mobile application | React Native, Expo SDK, TypeScript | Android phones of the staff, the owner and members | Capture, reading, review and upload of pages; owner monitoring; member screens |
 | Online OCR | Google Gemini API, model Gemini 2.5 Flash, JSON output | Google Cloud | Reads a page image and returns entries |
 | Offline OCR | Google ML Kit Text Recognition | The phone | Reads a page image without internet access |
 | Cloud database | Supabase: PostgreSQL, Auth, Row-Level Security | Supabase Cloud | Shared record of profiles, uploads and entries; member copies; sign-in |
@@ -144,7 +144,7 @@ The following decisions shape the design. Each one answers a constraint or requi
 - **Cloud as the shared record:** the logbook data lives in Supabase so that the owner's phone and the desktop application see the same uploads. The desktop keeps its own member and rate data in SQLite so that the gym's daily operations do not depend on the internet.
 - **Reconciliation:** the same payment can appear both in the logbook and in a member payment recorded on the desktop. The revenue engine counts the logbook totals first and skips member payments that match a logbook entry by name, so each payment is counted once.
 - **Member copies in the cloud:** the desktop remains the source of the member records and payments. It publishes to Supabase only the records of invited members, together with the rates and announcements, so that the member screens never reach the desktop database and only the data that members need is kept in the cloud. Changes made while the computer is offline wait in an outbox and are published when the connection returns.
-- **Invite-only member access:** public sign-up is turned off in Supabase Auth. A member account exists only after the administrator sends an invite, members sign in with one-time email links instead of passwords, and Row-Level Security lets each member read only their own rows.
+- **Invite-only member access:** public sign-up is turned off in Supabase Auth. A member account exists only after the administrator sends an invite, members sign in with an email address and a password, which they create after signing in with a one-time email code, and Row-Level Security lets each member read only their own rows.
 - **No online payment:** the member screens are read-only. Members pay and renew at the front desk, where the payment is recorded on the desktop and then appears in the member's history with a receipt.
 - **Reminders from the cloud:** renewal reminders are sent by a scheduled Edge Function, not by the desktop, so that they go out every morning even when the gym's computer is turned off.
 - **Security in depth:** access is checked in the interface (role-based navigation), in the local API (JWT on every request) and in the database (Row-Level Security), so a fault in one layer does not expose data.
@@ -161,7 +161,7 @@ The class diagrams below describe the structure of each part of the system. Beca
 
 *Figure 2.0 Authentication and Access Class Diagram*
 
-AuthContext holds the session and the profile of the signed-in user and offers signIn, signOut and refreshProfile to every screen. LoginScreen collects the email and password and calls signIn, which uses Supabase Auth to verify them. After sign-in, AuthContext loads the UserProfile from the profiles table and signs the user out again if the account is disabled (is_active is false). RootNavigator reads the session and the profile: without a session it shows LoginScreen; with one, it shows StaffTabs (Scan and History) for the staff or OwnerTabs (Dashboard, Scan, History, Staff and Settings) for the owner. A member signs in with signInWithEmailLink instead. Because a member's account has no profile, AuthContext loads the member's MemberAccount from the member_accounts table, and RootNavigator shows MemberTabs (Home, Payments and Rates).
+AuthContext holds the session and the profile of the signed-in user and offers signIn, signOut and refreshProfile to every screen. LoginScreen collects the email and password and calls signIn, which uses Supabase Auth to verify them. After sign-in, AuthContext loads the UserProfile from the profiles table and signs the user out again if the account is disabled (is_active is false). RootNavigator reads the session and the profile: without a session it shows LoginScreen; with one, it shows StaffTabs (Scan and History) for the staff or OwnerTabs (Dashboard, Scan, History, Staff and Settings) for the owner. Without a session, the application opens MemberLoginScreen, which leads to LoginScreen for the staff and the owner. A member signs in with signInMember, or with an email code through requestMemberCode and verifyMemberCode. Because a member's account has no profile, AuthContext loads the member's MemberAccount from the member_accounts table, and RootNavigator shows SetPasswordScreen while a password is still needed, and otherwise MemberTabs (Home, Payments, Rates and Account).
 
 
 #### 2.3.2. Logbook Capture and AI OCR
@@ -224,7 +224,7 @@ LogbookView reads and changes the synchronized logbook through the logbook route
 
 *Figure 9.0 Member Screens Class Diagram*
 
-MemberLoginScreen asks AuthContext to email a sign-in link to the member's address. After sign-in, MemberTabs shows three tabs. MemberHomeScreen, MemberPaymentsScreen and MemberRatesScreen read their data through MemberService, which selects only the member's own rows; Row-Level Security in the database enforces the same limit. ReceiptScreen shows one MemberPayment, saves it as a PDF file with Expo Print and shares it with Expo Sharing. NotificationService asks for permission to show notifications after sign-in, gets the phone's push token from Expo Notifications and saves it in the member's row, and opens the Home screen when the member taps a reminder.
+MemberLoginScreen signs the member in with an email address and a password, or, for the first sign-in and a forgotten password, asks AuthContext to email a code and verifies the code that the member types. SetPasswordScreen then saves the member's new password, and MemberAccountScreen shows the member's details, changes the password after checking the current one, and signs the member out. After sign-in, MemberTabs shows four tabs. MemberHomeScreen, MemberPaymentsScreen and MemberRatesScreen read their data through MemberService, which selects only the member's own rows; Row-Level Security in the database enforces the same limit. ReceiptScreen shows one MemberPayment, saves it as a PDF file with Expo Print and shares it with Expo Sharing. NotificationService asks for permission to show notifications after sign-in, gets the phone's push token from Expo Notifications and saves it in the member's row, and opens the Home screen when the member taps a reminder.
 
 
 #### 2.3.9. Member Access on the Desktop and in the Cloud
@@ -329,7 +329,7 @@ The cloud database runs on Supabase PostgreSQL. Its keys are UUIDs, its dates us
 | member_id | text | 10 | Member ID from the desktop, in the form M-002. Unique. |
 | user_id | uuid | 36 | The sign-in account created by the invite. Empty until the member is invited. |
 | name | text | 100 | Full name of the member. Required. |
-| email | text | 255 | Email address to which the invite and the sign-in links are sent. Unique and required. |
+| email | text | 255 | Email address used to sign in, to which the invite and the sign-in codes are sent. Unique and required. |
 | plan | text | 60 | Current plan, in the same form as on the desktop. Required. |
 | status | text | 15 | Active, Expiring Soon, Expired or Pending, as computed by the desktop. |
 | joined_date | date | 4 | Start of the current plan. |
@@ -428,8 +428,8 @@ The desktop database is a single SQLite file on the gym's computer. SQLite store
 | id | INTEGER | 8 | Internal identifier, assigned automatically. |
 | member_id | TEXT | 10 | Member ID shown to the staff, in the form M-001. Unique; the next free number is assigned automatically. |
 | name | TEXT | 100 | Full name of the member. Required. |
-| contact | TEXT | 20 | Mobile number of the member. Required. |
-| email | TEXT | 255 | Email address for the member screens. Optional; required before an invite. |
+| contact | TEXT | 20 | Mobile number of the member. Optional; empty when not given. |
+| email | TEXT | 255 | Email address, used for the member screens. Required; no two members share one. |
 | plan | TEXT | 60 | Plan in the form “Regular Plan - Monthly (No Treadmill)”: category, period and treadmill option. Required. |
 | status | TEXT | 15 | Active, Expiring Soon, Expired or Pending, computed from the dates. Default Active. |
 | joined_date | DATE | 10 | Start of the current plan. |
@@ -592,7 +592,7 @@ This section describes how the components work together to carry out the main fu
 | FR-09 | Rates and Announcements Management | Rates view, MemberSync, rates and announcements tables | Section 4.8 |
 | FR-10 | Logbook Management | LogbookView, Logbook API, LogbookSync | Section 4.9 |
 | FR-11 | Revenue Analytics and Reports | RevenueView, RevenueEngine, NameMatcher, ReportExporter | Section 4.10 |
-| FR-12 | Member Sign-In and Membership Status | MemberLoginScreen, AuthContext, MemberHomeScreen, MemberRatesScreen, MemberService, member-access function | Sections 4.1, 4.11 and 4.12 |
+| FR-12 | Member Sign-In and Membership Status | MemberLoginScreen, SetPasswordScreen, AuthContext, MemberHomeScreen, MemberRatesScreen, MemberAccountScreen, MemberService, member-access function | Sections 4.1, 4.11 and 4.12 |
 | FR-13 | Member Payment History and Receipts | MemberPaymentsScreen, ReceiptScreen, MemberService, member_payments table | Section 4.12 |
 | FR-14 | Membership Renewal Reminders | NotificationService, send-reminders function, Expo Push Service | Section 4.13 |
 
@@ -615,23 +615,34 @@ A user signs in to the mobile application as follows:
 
 The desktop application follows the same pattern with its own account. Its Login view sends the email and password to POST /api/login; the local API compares the password with the bcrypt hash in the users table and returns a JWT that expires after 24 hours. ApiClient keeps the token in memory and sends it with every request; when a request is refused because the token is missing or expired, the application returns to the Login view.
 
-A member signs in without a password. MemberLoginScreen calls AuthContext.signInWithEmailLink, which asks Supabase Auth to email a one-time link with new accounts disabled, so that only invited addresses receive one. When the member opens the link, AuthContext receives the session. The account has no profile, so AuthContext loads the member's row from member_accounts instead, and RootNavigator shows MemberTabs. An account that has neither a profile nor a member account is signed out at once.
+A member signs in on MemberLoginScreen, the first screen of the mobile application, as shown in the figure below:
+
+![Figure 14.0 Member Sign In Sequence Diagram](assets/sdd/sd-member.png)
+
+*Figure 14.0 Member Sign In Sequence Diagram*
+
+1. The member enters an email address and a password, and AuthContext.signInMember asks Supabase Auth to verify them. A wrong password and an unknown address give the same message.
+2. For the first sign-in or a forgotten password, the member asks for a code instead. requestMemberCode asks Supabase Auth to email a one-time code with new accounts disabled, so that only invited addresses receive one, and the screen does not reveal whether an address was invited.
+3. The member types the code, and verifyMemberCode checks it. SetPasswordScreen then requires a new password of at least 8 characters, which setMemberPassword saves with Supabase Auth.
+4. The account has no profile, so AuthContext loads the member's row from member_accounts, and RootNavigator shows MemberTabs. An account that has neither a profile nor a member account is signed out at once, and a staff or owner account that signs in here with its password opens its own screens, while a sign-in with an email code is refused for it.
+
+The application knows whether a password is still needed from a has_password mark saved in the account's Supabase Auth user data together with the password, and from a note kept on the phone after a code sign-in until the new password is saved, so closing the application does not skip the step. On MemberAccountScreen, changeMemberPassword verifies the current password before it saves a new one. The session is kept in Secure Store.
 
 
 ### 4.2. Online Logbook Reading
 
-![Figure 14.0 Online Logbook Reading Sequence Diagram](assets/sdd/sd-online.png)
+![Figure 15.0 Online Logbook Reading Sequence Diagram](assets/sdd/sd-online.png)
 
-*Figure 14.0 Online Logbook Reading Sequence Diagram*
+*Figure 15.0 Online Logbook Reading Sequence Diagram*
 
 The staff member sets the log date on CameraScreen, which also shows the number of Gemini scans left, and captures the page. ReviewScreen resizes the image to a width of 1,600 pixels and compresses it, then calls GeminiService. GeminiService sends the image to Gemini 2.5 Flash with a prompt that describes the logbook layout and lists NeoFit's valid amounts, asking for a JSON list of entries with a low temperature (0.1) so that the model does not invent values. When the entries arrive, ReviewScreen uses up one scan from ScanLimiter, asks RateValidator to flag unusual amounts, and shows the rows for review with the label “Gemini 2.5 AI”.
 
 
 ### 4.3. Offline Logbook Reading
 
-![Figure 15.0 Offline Logbook Reading Sequence Diagram](assets/sdd/sd-offline.png)
+![Figure 16.0 Offline Logbook Reading Sequence Diagram](assets/sdd/sd-offline.png)
 
-*Figure 15.0 Offline Logbook Reading Sequence Diagram*
+*Figure 16.0 Offline Logbook Reading Sequence Diagram*
 
 When GeminiService reports a failure (no connection, an API error, a time-out or no scans left), ReviewScreen reads the page with ML Kit on the phone and passes the raw text to OcrParser. The screen shows a warning that the local results may be less accurate and labels the rows “Local ML Kit”. OcrParser turns each line of text into an entry with the rules below.
 
@@ -669,9 +680,9 @@ Flags never block saving: a flagged value may be correct, for example a discount
 
 ### 4.5. Saving, Offline Queue and Synchronization
 
-![Figure 16.0 Save and Synchronization Sequence Diagram](assets/sdd/sd-save.png)
+![Figure 17.0 Save and Synchronization Sequence Diagram](assets/sdd/sd-save.png)
 
-*Figure 16.0 Save and Synchronization Sequence Diagram*
+*Figure 17.0 Save and Synchronization Sequence Diagram*
 
 Saving a confirmed page follows these steps:
 
@@ -704,7 +715,7 @@ On the Members view, the administrator adds, edits, renews, views and deletes me
 
 The desktop Dashboard summarizes the active members, today's logbook entries and revenue, and lists the members whose plans have expired or will expire soon, so that the staff can remind them to renew.
 
-The Member Details window also shows the member's access to the member screens, “Not invited yet” or “Invited”, with the email address and the Send Invite Link button described in Section 4.11. Deleting a member who has been invited also removes the member's cloud copy and sign-in account.
+The Member Details window also shows the member's access to the member screens, “Not invited yet” or “Invited”, with the email address and the Send Invite button described in Section 4.11. Deleting a member who has been invited also removes the member's cloud copy and sign-in account.
 
 
 ### 4.8. Rates and Announcements Management
@@ -716,18 +727,18 @@ Below the rate table, the administrator posts announcements for members with a t
 
 ### 4.9. Logbook Management
 
-![Figure 17.0 Logbook Entry Correction Sequence Diagram](assets/sdd/sd-logbook.png)
+![Figure 18.0 Logbook Entry Correction Sequence Diagram](assets/sdd/sd-logbook.png)
 
-*Figure 17.0 Logbook Entry Correction Sequence Diagram*
+*Figure 18.0 Logbook Entry Correction Sequence Diagram*
 
 The Logbook view lists the synchronized entries of a selected date, with a calendar that shows the total of every day that has entries. When the administrator corrects an entry, the local API updates it in the cloud database, recomputes the number of entries and the total of its upload, mirrors the entry into the local backup table, and clears the logbook cache so that the revenue views show the new values. Adding entries by hand creates a new upload for the date; deleting an entry recomputes the totals of its upload, and an upload left without entries is deleted.
 
 
 ### 4.10. Revenue Analytics and Reports
 
-![Figure 18.0 Revenue Reconciliation Sequence Diagram](assets/sdd/sd-revenue.png)
+![Figure 19.0 Revenue Reconciliation Sequence Diagram](assets/sdd/sd-revenue.png)
 
-*Figure 18.0 Revenue Reconciliation Sequence Diagram*
+*Figure 19.0 Revenue Reconciliation Sequence Diagram*
 
 When the administrator opens the Revenue view and chooses a month, the local API gets the logbook uploads through LogbookSync, which queries Supabase only when its cached copy is older than 60 seconds, and passes them to RevenueEngine. RevenueEngine reads the members, their payments and the rates from SQLite and the entries of the month's uploads from Supabase, then builds a daily breakdown with the rules below.
 
@@ -745,19 +756,19 @@ The result gives, for each day, the revenue and count from the logbook and from 
 
 ### 4.11. Member Invitations and Data Publishing
 
-![Figure 19.0 Member Invitation Sequence Diagram](assets/sdd/sd-invite.png)
+![Figure 20.0 Member Invitation Sequence Diagram](assets/sdd/sd-invite.png)
 
-*Figure 19.0 Member Invitation Sequence Diagram*
+*Figure 20.0 Member Invitation Sequence Diagram*
 
 The administrator invites a member from the Member Details window as follows:
 
-1. The administrator enters or confirms the member's email address and taps Send Invite Link. MembersView sends POST /api/members/:id/invite to the local API.
+1. The administrator enters or confirms the member's email address and taps Send Invite. MembersView sends POST /api/members/:id/invite to the local API.
 2. The local API saves the email address and publishes the member at once: it upserts the member's row in member_accounts and the member's payments in member_payments, and stores the new cloud ID in the members table.
-3. The local API then calls the member-access Edge Function with the owner's session. The function checks that the caller is an owner and asks Supabase Auth to invite the email address, which creates the member's sign-in account and emails a sign-in link.
+3. The local API then calls the member-access Edge Function with the owner's session. The function checks that the caller is an owner and asks Supabase Auth to create the member's sign-in account, already confirmed, and to email a one-time code to the address.
 4. The function stores the new account's ID in user_id and the time in invited_at, and the Member Details window shows the status “Invited”.
-5. When the member opens the link, Supabase Auth signs the member in, and the member screens load the member's own row, which Row-Level Security allows because its user_id is the member's account.
+5. The member enters the code in the mobile application and creates a password; the member screens then load the member's own row, which Row-Level Security allows because its user_id is the member's account.
 
-If the computer is offline, the invite is not sent and the window shows a notice. Sending an invite again to the same member sends a new sign-in link instead of creating a second account.
+If the computer is offline, the invite is not sent and the window shows a notice. Sending an invite again to the same member sends a new code instead of creating a second account; if the member's email address has changed, the existing account takes the new address and keeps its password.
 
 After the invite, the copies are kept up to date through the outbox. Every change that a member can see, such as an edited member, a renewal or a new payment of an invited member, or a change of the rates, adds an item to the sync_outbox table. MemberSync sends the pending items in the order they were queued, after every change and every five minutes, with upsert operations, so that sending an item twice never creates a duplicate. An item is removed only after the cloud database accepts it; a failed item stays in the outbox and its attempts are counted. Deleting an invited member queues a delete, which removes the cloud copy, and asks the member-access function to remove the sign-in account. Members who have not been invited are never copied to the cloud.
 
@@ -768,24 +779,25 @@ After sign-in, the member screens read only the cloud copies. The table below li
 
 | Screen | Shows | Reads |
 |---|---|---|
-| Member Sign In | Email field and the Email Me a Sign-In Link button; a note to ask the front desk for an invite | Supabase Auth (email link, no new accounts) |
+| Member Sign In | Email and password fields and the Sign In button; the way to get an email code; staff and owner sign in | Supabase Auth (password) |
+| Email Code | Email field and Send Code, then the code field, Sign In and Resend code | Supabase Auth (email code, no new accounts) |
+| Create Password | New password typed twice and Save Password; shown after every code sign-in | Supabase Auth (update password) |
 | Home | Plan, member ID, status, days left with a progress bar, expiry date, renewal notice, last payment and latest announcement | member_accounts, member_payments, announcements |
 | Payments | Total and number of payments this year; each payment with its date, period, receipt number and amount | member_payments |
 | Receipt | Receipt number, amount, date, member, plan, period covered and place of payment; Save as PDF and Share | member_payments, member_accounts |
 | Rates & News | The official rate table and all current announcements | rates, announcements |
+| Account | The member's name, email and member ID (view only), Change password and Sign Out | member_accounts, Supabase Auth |
 
 *Table 25.0 Member Screens and Their Data*
 
 The days left are counted from today to the expiry date. When the plan expires within seven days, the Home screen shows the status “Expiring Soon” and a notice to renew at the front desk, even if the member has not allowed notifications. The receipt is drawn as a page in the application and saved as a PDF file with Expo Print, or shared with Expo Sharing; it states that it is a payment acknowledgment and not an official receipt of the Bureau of Internal Revenue. The member screens have no payment function: every screen that mentions renewal sends the member to the front desk.
 
-Members who do not use an Android phone open the same screens in a web browser. The web version signs in with the same email link and shows the same data. It does not receive push notifications, so it relies on the renewal notice on the Home screen.
-
 
 ### 4.13. Renewal Reminders
 
-![Figure 20.0 Renewal Reminder Sequence Diagram](assets/sdd/sd-reminder.png)
+![Figure 21.0 Renewal Reminder Sequence Diagram](assets/sdd/sd-reminder.png)
 
-*Figure 20.0 Renewal Reminder Sequence Diagram*
+*Figure 21.0 Renewal Reminder Sequence Diagram*
 
 Every day at 8:00 AM, Philippine time, pg_cron starts the send-reminders Edge Function. The function selects the member accounts that have a push token and whose expiry date is exactly 7, 3 or 1 day away, skips any account whose last_reminder_on is already today, and sends each remaining member one push notification through the Expo Push Service, with the messages below. It then sets last_reminder_on to today. When the member taps the notification, NotificationService opens the Home screen, which loads the current membership.
 
@@ -810,81 +822,99 @@ This section presents the screens of the system and explains the purpose and con
 
 #### 5.1.1. Login Screen
 
-![Figure 21.0 Login Screen](assets/sdd/ui-m-login.png)
+![Figure 22.0 Login Screen](assets/sdd/ui-m-login.png)
 
-*Figure 21.0 Login Screen*
+*Figure 22.0 Login Screen*
 
-The Login screen is the first screen of the mobile application for both the staff and the owner. It has an email field, a password field and a Sign In button. Errors, such as a wrong password or a disabled account, appear under the fields. After a successful sign-in the session is saved, so the user does not have to sign in again each time the application opens. Below the form, the link “Sign in with an email link” opens the Member Sign In screen for members.
+The Login screen is where the staff and the owner sign in; it is reached from the Member Sign In screen, which the mobile application opens first. It has an email field, a password field and a Sign In button. Errors, such as a wrong password or a disabled account, appear above the fields. After a successful sign-in the session is saved, so the user does not have to sign in again each time the application opens. Below the form, the link “Back to member sign in” returns to the Member Sign In screen.
 
 
 #### 5.1.2. Scan and Processing Screens
 
-![Figure 22.0 Scan and Processing Screens](assets/sdd/ui-m-camera+m-processing.png)
+![Figure 23.0 Scan and Processing Screens](assets/sdd/ui-m-camera+m-processing.png)
 
-*Figure 22.0 Scan and Processing Screens*
+*Figure 23.0 Scan and Processing Screens*
 
 The Scan screen (a) shows the camera with a frame for aligning the logbook page. Above it, arrows move the log date to an earlier day or back to today, and a badge shows how many Gemini scans are left and when they reset. At the bottom are the shutter button and a gallery button for importing a photo. A tip reminds the user to use good lighting. After capture, the Processing screen (b) shows a progress indicator while the page is being read.
 
 
 #### 5.1.3. Review Screen
 
-![Figure 23.0 Review Screen](assets/sdd/ui-m-review+m-review-offline.png)
+![Figure 24.0 Review Screen](assets/sdd/ui-m-review+m-review-offline.png)
 
-*Figure 23.0 Review Screen*
+*Figure 24.0 Review Screen*
 
 The Review screen shows the log date, a thumbnail of the page and the extracted entries as editable rows of name and amount, each with a delete button. The header gives the number of entries, the OCR engine used and the scans used today. Amounts that are not official rates are marked “amount?” and repeated rows “DUP”. The total updates as the user edits, and Confirm & Save starts the save. Screen (a) shows a page read online by Gemini; screen (b) shows the same page read offline by ML Kit, with a warning that the local results may be less accurate.
 
 
 #### 5.1.4. Upload Success and Staff History Screens
 
-![Figure 24.0 Upload Success and Staff History Screens](assets/sdd/ui-m-success+m-staffhistory.png)
+![Figure 25.0 Upload Success and Staff History Screens](assets/sdd/ui-m-success+m-staffhistory.png)
 
-*Figure 24.0 Upload Success and Staff History Screens*
+*Figure 25.0 Upload Success and Staff History Screens*
 
 The Upload Success screen (a) confirms the save and shows the log date, the number of entries, the total and the time. Its buttons start the next scan or open the history. The staff's History screen (b) lists the user's uploads, with Today and All Time tabs. Each card shows the date, the number of entries, the total, the time and a badge: “Synced” for pages in the cloud database and “Pending Sync” for pages still in the offline queue. Pulling the list down refreshes it and uploads any queued pages.
 
 
 #### 5.1.5. Owner Dashboard and Revenue History Screens
 
-![Figure 25.0 Owner Dashboard and Revenue History Screens](assets/sdd/ui-m-dashboard+m-ownerhistory.png)
+![Figure 26.0 Owner Dashboard and Revenue History Screens](assets/sdd/ui-m-dashboard+m-ownerhistory.png)
 
-*Figure 25.0 Owner Dashboard and Revenue History Screens*
+*Figure 26.0 Owner Dashboard and Revenue History Screens*
 
 The owner's Dashboard (a) greets the owner and shows four cards with the revenue of today, this week, this month and this year, a chart of the last seven days, and a summary of today's revenue and entries. The Revenue History screen (b) lists all uploads from all staff, newest first; each card shows the date, the staff member who scanned the page, the number of entries and the total. Tapping a card opens the entries of that page.
 
 
 #### 5.1.6. Staff Management and Settings Screens
 
-![Figure 26.0 Staff Management and Settings Screens](assets/sdd/ui-m-staffmgmt+m-settings.png)
+![Figure 27.0 Staff Management and Settings Screens](assets/sdd/ui-m-staffmgmt+m-settings.png)
 
-*Figure 26.0 Staff Management and Settings Screens*
+*Figure 27.0 Staff Management and Settings Screens*
 
 The Staff Management screen (a) shows the number of active, disabled and total staff accounts and a card for each staff member with the name, email and status of the account. The button on each card disables or enables the account. The Settings screen (b) shows the owner's profile and offers Edit Profile, Change Password, Sync Status (the offline queue and the last synchronization), Export Reports (CSV) and Sign Out.
 
 
 #### 5.1.7. Member Sign In and Home Screens
 
-![Figure 27.0 Member Sign In and Home Screens](assets/sdd/ui-m-member-login+m-member-home.png)
+![Figure 28.0 Member Sign In and Home Screens](assets/sdd/ui-m-member-login+m-member-home.png)
 
-*Figure 27.0 Member Sign In and Home Screens*
+*Figure 28.0 Member Sign In and Home Screens*
 
-The Member Sign In screen (a) has one email field and the Email Me a Sign-In Link button, with a note that no password is needed and that members without access should ask the front desk for an invite. The Home screen (b) greets the member and shows the membership card: the plan and member ID, the status badge, the days left in large numbers, the expiry date, a progress bar of the current period, and a notice to renew at the front desk. Below it are the last payment, with a link to its receipt, and the latest announcement. The tabs at the bottom open Home, Payments and Rates.
+The Member Sign In screen (a) has an email field, a password field and a Sign In button, the link “First time or forgot your password? Get an email code”, a note that members without access should ask the front desk for an invite, and the way to the staff and owner sign-in. The Home screen (b) greets the member and shows the membership card: the plan and member ID, the status badge, the days left in large numbers, the expiry date, a progress bar of the current period, and a notice to renew at the front desk. Below it are the last payment, with a link to its receipt, and the latest announcement. The tabs at the bottom open Home, Payments, Rates and Account.
 
 
-#### 5.1.8. My Payments and Receipt Screens
+#### 5.1.8. Email Code and Create Password Screens
 
-![Figure 28.0 My Payments and Receipt Screens](assets/sdd/ui-m-member-payments+m-member-receipt.png)
+![Figure 29.0 Email Code and Create Password Screens](assets/sdd/ui-m-member-code+m-member-password.png)
 
-*Figure 28.0 My Payments and Receipt Screens*
+*Figure 29.0 Email Code and Create Password Screens*
+
+The Email Code screen (a) is used for the first sign-in and for a forgotten password. After the member sends the email address, it takes the code from the email, signs the member in, and offers a new code once the waiting time has passed. The Create Your Password screen (b) follows every code sign-in and cannot be skipped: the member types a password of at least 8 characters twice and saves it.
+
+
+#### 5.1.9. Member Account Screen
+
+![Figure 30.0 Member Account Screen](assets/sdd/ui-m-member-account.png)
+
+*Figure 30.0 Member Account Screen*
+
+The Account screen shows the member's name, email address and member ID, which only the front desk can change. The member changes the password by typing the current one and the new one twice, and signs out with the Sign Out button, after confirming.
+
+
+#### 5.1.10. My Payments and Receipt Screens
+
+![Figure 31.0 My Payments and Receipt Screens](assets/sdd/ui-m-member-payments+m-member-receipt.png)
+
+*Figure 31.0 My Payments and Receipt Screens*
 
 The My Payments screen (a) shows the total and the number of payments this year, and lists the member's payments, newest first, each with the date, the period covered, the receipt number and the amount. Tapping a payment opens the Receipt screen (b), which shows the NeoFit logo, the receipt number, the amount and the details of the payment, with Save as PDF and Share buttons.
 
 
-#### 5.1.9. Renewal Reminder and Rates Screens
+#### 5.1.11. Renewal Reminder and Rates Screens
 
-![Figure 29.0 Renewal Reminder and Rates Screens](assets/sdd/ui-m-member-reminder+m-member-rates.png)
+![Figure 32.0 Renewal Reminder and Rates Screens](assets/sdd/ui-m-member-reminder+m-member-rates.png)
 
-*Figure 29.0 Renewal Reminder and Rates Screens*
+*Figure 32.0 Renewal Reminder and Rates Screens*
 
 Renewal reminders (a) appear on the phone like other notifications, with the NeoFit icon, even when the application is closed; tapping one opens the Home screen. The Rates & News screen (b) shows NeoFit's official rate table and the announcements posted by the administrator, newest first, each with its date.
 
@@ -896,54 +926,54 @@ Every view of the desktop application shares the same layout: the NeoFit logo an
 
 #### 5.2.1. Dashboard
 
-![Figure 30.0 Desktop Dashboard](assets/sdd/ui-d-dashboard.png)
+![Figure 33.0 Desktop Dashboard](assets/sdd/ui-d-dashboard.png)
 
-*Figure 30.0 Desktop Dashboard*
+*Figure 33.0 Desktop Dashboard*
 
 The Dashboard gives the administrator an overview of the gym. Six cards show the active members, today's logbook entries, the total members, and the revenue of today, this month and this year. Below them, Today's Logbook Entries lists the entries scanned today with their name, amount, and the time and staff member of the scan, and Membership Alerts lists the members whose plans have expired or will expire soon. The Add New Member button opens the member form.
 
 
 #### 5.2.2. Members
 
-![Figure 31.0 Members View](assets/sdd/ui-d-members.png)
+![Figure 34.0 Members View](assets/sdd/ui-d-members.png)
 
-*Figure 31.0 Members View*
+*Figure 34.0 Members View*
 
-The Members view lists all members with their ID, name, address, plan, plan expiry and status. A search box finds members by name or ID, and a filter shows only one status. Each row has Details, Edit and Delete buttons. The member form, opened by Add New Member or Edit, collects the name, contact number, address, photo, plan, dates and payment amount, which is filled in from the rate table, and, optionally, the email address for the member screens.
+The Members view lists all members with their ID, name, address, plan, plan expiry and status. A search box finds members by name or ID, and a filter shows only one status. Each row has Details, Edit and Delete buttons. The member form, opened by Add New Member or Edit, collects the name, contact number, address, photo, plan, dates and payment amount, which is filled in from the rate table, and the email address, which the member uses for the member screens. The contact number and the photo are optional; the email address is required.
 
 
 #### 5.2.3. Member Details and App Invite
 
-![Figure 32.0 Member Details and App Invite](assets/sdd/ui-d-member-invite.png)
+![Figure 35.0 Member Details and App Invite](assets/sdd/ui-d-member-invite.png)
 
-*Figure 32.0 Member Details and App Invite*
+*Figure 35.0 Member Details and App Invite*
 
-The Details button opens the Member Details window with the member's plan, status, joined date, plan expiry and last payment. Its Member App Access section shows whether the member has been invited, the member's email address and the Send Invite Link button, and it explains what the member will see. The Edit and Renew buttons open the member form; renewing records a new payment with its receipt number.
+The Details button opens the Member Details window with the member's plan, status, joined date, plan expiry and last payment. Its Member App Access section shows whether the member has been invited, the member's email address and the Send Invite button, and it explains what the member will see. The Edit and Renew buttons open the member form; renewing records a new payment with its receipt number.
 
 
 #### 5.2.4. Rates
 
-![Figure 33.0 Rates View](assets/sdd/ui-d-rates.png)
+![Figure 36.0 Rates View](assets/sdd/ui-d-rates.png)
 
-*Figure 33.0 Rates View*
+*Figure 36.0 Rates View*
 
 The Rates view shows NeoFit's official rates as a table of editable prices: one row for each plan category and treadmill option, and one column each for the monthly, semi-monthly and daily price. Save Rates stores the changes, and Reset Default restores the official rates. A note explains that the changes apply at once to revenue computations, the revenue report, the member forms and the rates in the member screens. Below the table, Announcements for Members lists the posted announcements with their dates and Remove buttons, and Post Announcement adds a new one with a title and a message.
 
 
 #### 5.2.5. Revenue
 
-![Figure 34.0 Revenue View](assets/sdd/ui-d-revenue.png)
+![Figure 37.0 Revenue View](assets/sdd/ui-d-revenue.png)
 
-*Figure 34.0 Revenue View*
+*Figure 37.0 Revenue View*
 
 The Revenue view shows the reconciled revenue of the selected month. The top panel gives the total revenue, its change from the previous period, arrows for moving between months, tabs for revenue, logbook entries and payments, and a chart of the daily totals with the peak day marked. Below it are the month's and the year's revenue, the revenue breakdown by source (member payments and logbook scans) and the plan breakdown. Download Report saves the same figures as a Word document.
 
 
 #### 5.2.6. Logbook
 
-![Figure 35.0 Logbook View](assets/sdd/ui-d-logbook.png)
+![Figure 38.0 Logbook View](assets/sdd/ui-d-logbook.png)
 
-*Figure 35.0 Logbook View*
+*Figure 38.0 Logbook View*
 
 The Logbook view shows the entries synchronized from the mobile application. A date picker opens a calendar that shows the total of each day with entries. For the selected date, the view gives the number of entries and their total, and it lists each entry with its name, amount, source and time, with Edit and Delete buttons. The administrator can also add entries by hand, for example for a page that was not scanned, and delete all the entries of a date.
 

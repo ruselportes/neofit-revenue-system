@@ -43,7 +43,7 @@ FR_TEXT = {
     "FR-09": "Lets the administrator view, edit and reset NeoFit's rate table, which all revenue computations use, and post or remove the announcements that members see.",
     "FR-10": "Lets the administrator view the synchronized logbook entries by date, and add, edit or delete entries.",
     "FR-11": "Computes and charts revenue from the logbook scans and the member payments, counting each payment once, and exports a Word revenue report.",
-    "FR-12": "Lets an invited member sign in to the mobile application with an email link, without a password, and see their own plan, expiry date, days left and status, together with NeoFit's rates and announcements. Members cannot pay in the application; they renew at the front desk.",
+    "FR-12": "Lets an invited member sign in to the mobile application with an email address and password, using a one-time code sent by email to create the password the first time or after forgetting it, lets the member change the password, and shows the member their own plan, expiry date, days left and status, together with NeoFit's rates and announcements. Members cannot pay in the application; they renew at the front desk.",
     "FR-13": "Shows a signed-in member only the payments recorded on their own member record, and gives a receipt for each payment that can be saved as a PDF file or shared.",
     "FR-14": "Sends an invited member a push notification 7, 3 and 1 day before the plan expires, reminding them to renew at the front desk, and shows the same reminder on the member's Home screen.",
 }
@@ -59,7 +59,7 @@ add(("p", "The system keeps the paper logbook and turns it into revenue records.
 
 add(("h2", "Project Summary"))
 add(("p", "The Revenue Collection and Monitoring System with AI-Integrated Logbook Scanning is a mobile and desktop system for NeoFit Fitness Gym. The mobile application, used by the staff and the owner, captures logbook pages and reads them with a two-tier OCR engine: Google Gemini 2.5 Flash when the phone is online, and Google ML Kit on the device when it is offline. Every amount is compared with the gym's official rate table so that unusual values are flagged for the staff, and no page is saved until a person confirms it."))
-add(("p", "Confirmed pages are stored in a cloud database on Supabase, or kept in a queue on the phone until a connection is available. The owner follows the revenue from the phone, and the administrator uses a Windows desktop application to manage members, rates and logbook entries, and to view revenue analytics that combine the logbook scans and the member payments. Invited members use the same mobile application, or its web version, to see their own membership status, payment history and receipts, NeoFit's rates and the gym's announcements, and they receive push reminders before their plans expire. Members still pay at the front desk; the system does not accept online payments. Overall, the system aims to remove manual tallying and encoding, reduce errors, support on-time renewals, and give NeoFit accurate and timely revenue information."))
+add(("p", "Confirmed pages are stored in a cloud database on Supabase, or kept in a queue on the phone until a connection is available. The owner follows the revenue from the phone, and the administrator uses a Windows desktop application to manage members, rates and logbook entries, and to view revenue analytics that combine the logbook scans and the member payments. Invited members use the same mobile application to see their own membership status, payment history and receipts, NeoFit's rates and the gym's announcements, and they receive push reminders before their plans expire. Members still pay at the front desk; the system does not accept online payments. Overall, the system aims to remove manual tallying and encoding, reduce errors, support on-time renewals, and give NeoFit accurate and timely revenue information."))
 
 add(("h2", "Definition, Acronyms, and Abbreviations"))
 add(("p", "The table below defines the terms, acronyms and abbreviations used in this document."))
@@ -78,15 +78,14 @@ add(tab("terms", "Definition of Terms", [2.0, 4.5], ["Terms", "Definition"], [
     ["Offline Queue", "Storage on the phone that holds confirmed pages until they can be uploaded."],
     ["Synchronization", "The process of uploading the pages in the offline queue to the cloud database."],
     ["Reconciliation", "Combining the revenue from the logbook scans and the member payments so that each payment is counted only once."],
-    ["Member Screens", "The part of the mobile application for gym members: Home, Payments, and Rates and announcements. Each member sees only their own records."],
+    ["Member Screens", "The part of the mobile application for gym members: Home, Payments, Rates and announcements, and Account. Each member sees only their own records."],
     ["Invite", "An email sent by the system, at the administrator's request, that gives a member access to the member screens."],
-    ["Email Link Sign-In", "Signing in without a password: the system emails a one-time link that signs the user in when it is opened."],
+    ["Email Code", "A one-time number that the system emails to an invited member, used to sign in for the first time or after the password is forgotten. It works once and expires after one hour."],
     ["Receipt", "The record of one member payment, with a receipt number, shown in the member's payment history. It acknowledges the payment and is not an official receipt of the Bureau of Internal Revenue (BIR)."],
     ["Renewal Reminder", "A notification that tells a member that the plan expires in 7, 3 or 1 days."],
     ["Push Notification", "A message sent to a phone that appears even when the application is closed."],
     ["Expo Push Service", "The notification service of the Expo platform, which delivers push notifications to Android phones."],
     ["Announcement", "A short notice from the gym, posted by the administrator and shown in the member screens."],
-    ["Web Version", "The member screens opened in a web browser, for members who do not use an Android phone."],
     ["Supabase", "A cloud platform that provides the PostgreSQL database and user authentication of the system."],
     ["Row-Level Security (RLS)", "A database feature that restricts which records each user may read or change."],
     ["SQLite", "A lightweight database embedded in the desktop application."],
@@ -145,7 +144,7 @@ add(("bullets", [
     "**Staff:** Front-desk personnel who write the logbook and scan it with the mobile application. They are familiar with smartphones but are not technical users, so the scanning flow must take only a few taps.",
     "**Owner:** The gym owner, who uses the mobile application to monitor revenue, review uploads and manage staff accounts. The owner can also scan pages.",
     "**Administrator:** The person who operates the desktop application at the gym, usually the owner or a trusted staff member. The administrator manages members, rates and logbook entries and views revenue analytics.",
-    "**Members:** NeoFit members invited by the administrator. They use the member screens of the mobile application, or its web version, to see their own membership, payments and receipts, the rates and the announcements, and they receive renewal reminders. Their experience with smartphones varies, so the member screens show only a few large, read-only items.",
+    "**Members:** NeoFit members invited by the administrator. They use the member screens of the mobile application to see their own membership, payments and receipts, the rates and the announcements, and they receive renewal reminders. Their experience with smartphones varies, so the member screens show only a few large, read-only items.",
 ]))
 add(("p", "Three external systems also act on the system: the **Google Gemini API**, which reads page images; **Supabase Cloud**, which stores records, verifies users and runs the daily reminder check; and the **Expo Push Service**, which delivers the reminders to the members' phones."))
 
@@ -161,7 +160,7 @@ add(("bullets", [
     "**Invited members only:** Only members invited by the administrator can sign in to the member screens, and only the records of invited members are copied to the cloud database.",
     "**No online payment:** The system records the payments made at the front desk but does not accept payments; members pay and renew only at the front desk.",
     "**Data privacy:** The handling of member names and payments must comply with the Data Privacy Act of 2012 (Republic Act No. 10173).",
-    "**Platforms:** The mobile application must run on Android, and its member screens must also run as a web version in a current web browser; the desktop application must run on Windows.",
+    "**Platforms:** The mobile application must run on Android, including its member screens; the desktop application must run on Windows.",
     "**AI quota:** Online AI scans are limited to five per day, reset at 8:00 AM, to stay within the Gemini API quota.",
 ]))
 add(("h3", "Soft Constraints"))
@@ -179,8 +178,8 @@ add(("p", "The following assumptions and dependencies apply to the requirements 
 add(("bullets", [
     "**Logbook practice:** NeoFit continues to record member visits and payments in its paper logbook, with each line holding a name and an amount (“name – amount”).",
     "**Legibility:** Entries are handwritten legibly enough for a person to read them.",
-    "**Devices:** The staff and the owner have Android smartphones with a working camera, and the gym has a Windows computer for the desktop application. Members who use the member screens have an Android phone or a phone with a current web browser.",
-    "**Member contact:** Members who want access to the member screens give the front desk an email address that they can open on their phone.",
+    "**Devices:** The staff and the owner have Android smartphones with a working camera, and the gym has a Windows computer for the desktop application. Members who use the member screens have an Android phone.",
+    "**Member contact:** Every member gives the front desk an email address that they can open on their phone.",
     "**Connectivity:** Internet access at the gym is available most of the time; online reading, synchronization and logbook editing on the desktop depend on it.",
     "**Third-party services:** The Google Gemini API, Supabase and the Expo Push Service remain available under their current free tiers and terms of use.",
     "**Accounts:** Staff and owner accounts are created by the owner in the cloud authentication service, and the owner keeps them up to date. Member accounts are created only through invites from the desktop application.",
@@ -197,17 +196,16 @@ add(("h3", "Hardware Interfaces"))
 add(("p", "The system runs on the staff's and owner's Android phones and on the gym's Windows computer. The table below lists the minimum hardware."))
 add(tab("hardware", "Minimum Hardware Requirements", [1.5, 3.6, 1.4], ["Device", "Minimum Requirement", "Used By"], [
     ["Android smartphone", ["Android 7.0 (API level 24) or later", "Rear camera with autofocus (staff and owner)", "3 GB RAM; 1 GB free storage", "Wi-Fi or mobile data"], "Staff, Owner, Members"],
-    ["Other smartphone", ["A current version of Chrome or Safari, for the web version of the member screens"], "Members"],
     ["Windows computer", ["Windows 10 or later, 64-bit", "Dual-core 2.0 GHz processor; 4 GB RAM", "500 MB free storage", "1366 × 768 display"], "Administrator"],
     ["Network", ["Internet access through Wi-Fi or mobile data for online reading, synchronization, the member screens and updates"], "All users"],
 ]))
 add(("h3", "Software Interfaces"))
 add(("p", "The system is built from the software components and services listed below."))
 add(tab("software", "Software Interfaces", [1.7, 2.5, 2.3], ["Interface", "Technology", "Purpose"], [
-    ["Mobile application", "React Native (Expo), TypeScript", "Application for the staff, the owner and members; the member screens also run in a web browser"],
+    ["Mobile application", "React Native (Expo), TypeScript", "Application for the staff, the owner and members"],
     ["Online OCR service", "Google Gemini API (Gemini 2.5 Flash) over HTTPS", "Reads page images and returns entries as JSON"],
     ["Offline OCR library", "Google ML Kit Text Recognition", "Reads page images on the phone"],
-    ["Cloud database and authentication", "Supabase: PostgreSQL, Auth and Row-Level Security over HTTPS", "Stores profiles, uploads, entries and the copies of member records; signs users in, also with email links"],
+    ["Cloud database and authentication", "Supabase: PostgreSQL, Auth and Row-Level Security over HTTPS", "Stores profiles, uploads, entries and the copies of member records; signs users in with passwords and with one-time email codes"],
     ["Cloud functions", "Supabase Edge Functions, run daily by a schedule (pg_cron)", "Send member invites and the daily renewal reminders"],
     ["Push notifications", "Expo Notifications and the Expo Push Service", "Deliver renewal reminders to the members' phones"],
     ["Receipt export", "Expo Print and Expo Sharing", "Save a receipt as a PDF file and share it"],
@@ -279,7 +277,7 @@ add(("h2", "Design Constraints"))
 add(("h3", "Software Language"))
 add(("p", "The mobile application shall be written in TypeScript with React Native and Expo. The desktop application shall be written in TypeScript and JavaScript with Electron, React and Vite, with a local API in Node.js and Express. Data shall be stored in PostgreSQL on Supabase, accessed through the Supabase client libraries and protected by SQL row-level security policies, and in SQLite on the desktop."))
 add(("h3", "Graphical-User Interface"))
-add(("p", "The mobile interface shall use a dark theme with a high-contrast mint accent, large touch targets, and bottom tabs that depend on the role: Scan and History for the staff; Dashboard, Scan, History, Staff and Settings for the owner; and Home, Payments and Rates for members. The desktop interface shall use a sidebar with Dashboard, Members, Rates, Revenue and Logbook, and shall offer light and dark modes. Amounts shall be shown in Philippine pesos and dates in the Philippine format. Screens shall be designed in Figma and kept consistent with the prototypes in Section 3.2.2."))
+add(("p", "The mobile interface shall use a dark theme with a high-contrast mint accent, large touch targets, and bottom tabs that depend on the role: Scan and History for the staff; Dashboard, Scan, History, Staff and Settings for the owner; and Home, Payments, Rates and Account for members. The desktop interface shall use a sidebar with Dashboard, Members, Rates, Revenue and Logbook, and shall offer light and dark modes. Amounts shall be shown in Philippine pesos and dates in the Philippine format. Screens shall be designed in Figma and kept consistent with the prototypes in Section 3.2.2."))
 
 add(("h2", "Software System Attributes"))
 add(("p", "The system must have the following quality attributes."))
@@ -288,11 +286,11 @@ add(("p", "The system shall produce correct and consistent records. No page shal
 add(("h3", "Availability"))
 add(("p", "Scanning shall remain available when the internet connection or the Gemini API is down, because the offline reader and the offline queue take over. The desktop application's member and rate functions shall work without internet access, since they use the local database; logbook editing and the logbook part of revenue analytics require access to the cloud database. The member screens and the renewal reminders require an internet connection; member records changed while the desktop computer is offline shall be published when the connection returns. The system depends on the availability of Supabase, the Gemini API and the Expo Push Service under their service terms."))
 add(("h3", "Security"))
-add(("p", "Every user shall sign in before using the system, and each role shall reach only its own functions. Row-level security in the cloud database shall ensure that a staff account can only create uploads under its own identity, and a disabled staff account shall not be able to sign in. All traffic between the applications and the cloud services shall be encrypted with HTTPS. The desktop application shall store passwords only as hashes, expire sessions after 24 hours, and accept API requests only from the same computer. Service keys and passwords shall be kept in configuration files outside the source code. Member accounts shall be created only by invitation from the desktop application, and sign-up without an invitation shall be disabled. Row-level security shall let a member read only their own membership and payments; members shall have no access to the logbook, the uploads, the staff profiles or the records of other members. Only the records of invited members shall be copied to the cloud database. Member information shall be collected and used only for the purposes of the system, in line with the Data Privacy Act of 2012."))
+add(("p", "Every user shall sign in before using the system, and each role shall reach only its own functions. Row-level security in the cloud database shall ensure that a staff account can only create uploads under its own identity, and a disabled staff account shall not be able to sign in. All traffic between the applications and the cloud services shall be encrypted with HTTPS. The desktop application shall store passwords only as hashes, expire sessions after 24 hours, and accept API requests only from the same computer. Service keys and passwords shall be kept in configuration files outside the source code. Member accounts shall be created only by invitation from the desktop application, and sign-up without an invitation shall be disabled. A member’s password shall have at least 8 characters, and the current password shall be required to change it. An email code shall work only once and expire after one hour, a member who signs in with a code shall create a new password before reaching the member screens, and the messages of the sign-in screens shall not state whether an email address belongs to a member. No two members shall share an email address. Row-level security shall let a member read only their own membership and payments; members shall have no access to the logbook, the uploads, the staff profiles or the records of other members. Only the records of invited members shall be copied to the cloud database. Member information shall be collected and used only for the purposes of the system, in line with the Data Privacy Act of 2012."))
 add(("h3", "Maintainability"))
 add(("p", "The code shall be organized into separate screens, services and data-access modules, written in TypeScript where possible, and kept in a Git repository. The rate table shall be defined in one place for revenue computations. New versions of the mobile application shall be deliverable through Expo EAS updates, and the desktop application shall update itself from GitHub Releases, so that fixes reach NeoFit without manual reinstallation."))
 add(("h3", "Portability"))
-add(("p", "The mobile application shall run on Android 7.0 or later, and its member screens shall also run as a web version in current browsers; because it is built with React Native and Expo, it can be built for iOS in the future without a rewrite. The desktop application shall run on Windows 10 or later. Records shall be stored in standard PostgreSQL and SQLite databases and can be exported as CSV and Word files, so the data is not locked into the application."))
+add(("p", "The mobile application shall run on Android 7.0 or later, including its member screens; because it is built with React Native and Expo, it can be built for iOS in the future without a rewrite. The desktop application shall run on Windows 10 or later. Records shall be stored in standard PostgreSQL and SQLite databases and can be exported as CSV and Word files, so the data is not locked into the application."))
 
 FIG_ENTRIES = [(FIGURES[k]["label"], FIGURES[k]["name"]) for k in FIG_ORDER]
 TAB_ENTRIES = [(TABLES[k]["label"], TABLES[k]["name"]) for k in TAB_ORDER]

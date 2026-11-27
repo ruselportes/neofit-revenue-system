@@ -19,7 +19,7 @@ The system keeps the paper logbook and turns it into revenue records. The staff 
 
 The Revenue Collection and Monitoring System with AI-Integrated Logbook Scanning is a mobile and desktop system for NeoFit Fitness Gym. The mobile application, used by the staff and the owner, captures logbook pages and reads them with a two-tier OCR engine: Google Gemini 2.5 Flash when the phone is online, and Google ML Kit on the device when it is offline. Every amount is compared with the gym's official rate table so that unusual values are flagged for the staff, and no page is saved until a person confirms it.
 
-Confirmed pages are stored in a cloud database on Supabase, or kept in a queue on the phone until a connection is available. The owner follows the revenue from the phone, and the administrator uses a Windows desktop application to manage members, rates and logbook entries, and to view revenue analytics that combine the logbook scans and the member payments. Invited members use the same mobile application, or its web version, to see their own membership status, payment history and receipts, NeoFit's rates and the gym's announcements, and they receive push reminders before their plans expire. Members still pay at the front desk; the system does not accept online payments. Overall, the system aims to remove manual tallying and encoding, reduce errors, support on-time renewals, and give NeoFit accurate and timely revenue information.
+Confirmed pages are stored in a cloud database on Supabase, or kept in a queue on the phone until a connection is available. The owner follows the revenue from the phone, and the administrator uses a Windows desktop application to manage members, rates and logbook entries, and to view revenue analytics that combine the logbook scans and the member payments. Invited members use the same mobile application to see their own membership status, payment history and receipts, NeoFit's rates and the gym's announcements, and they receive push reminders before their plans expire. Members still pay at the front desk; the system does not accept online payments. Overall, the system aims to remove manual tallying and encoding, reduce errors, support on-time renewals, and give NeoFit accurate and timely revenue information.
 
 
 ### 1.2. Definition, Acronyms, and Abbreviations
@@ -42,15 +42,14 @@ The table below defines the terms, acronyms and abbreviations used in this docum
 | Offline Queue | Storage on the phone that holds confirmed pages until they can be uploaded. |
 | Synchronization | The process of uploading the pages in the offline queue to the cloud database. |
 | Reconciliation | Combining the revenue from the logbook scans and the member payments so that each payment is counted only once. |
-| Member Screens | The part of the mobile application for gym members: Home, Payments, and Rates and announcements. Each member sees only their own records. |
+| Member Screens | The part of the mobile application for gym members: Home, Payments, Rates and announcements, and Account. Each member sees only their own records. |
 | Invite | An email sent by the system, at the administrator's request, that gives a member access to the member screens. |
-| Email Link Sign-In | Signing in without a password: the system emails a one-time link that signs the user in when it is opened. |
+| Email Code | A one-time number that the system emails to an invited member, used to sign in for the first time or after the password is forgotten. It works once and expires after one hour. |
 | Receipt | The record of one member payment, with a receipt number, shown in the member's payment history. It acknowledges the payment and is not an official receipt of the Bureau of Internal Revenue (BIR). |
 | Renewal Reminder | A notification that tells a member that the plan expires in 7, 3 or 1 days. |
 | Push Notification | A message sent to a phone that appears even when the application is closed. |
 | Expo Push Service | The notification service of the Expo platform, which delivers push notifications to Android phones. |
 | Announcement | A short notice from the gym, posted by the administrator and shown in the member screens. |
-| Web Version | The member screens opened in a web browser, for members who do not use an Android phone. |
 | Supabase | A cloud platform that provides the PostgreSQL database and user authentication of the system. |
 | Row-Level Security (RLS) | A database feature that restricts which records each user may read or change. |
 | SQLite | A lightweight database embedded in the desktop application. |
@@ -120,7 +119,7 @@ From the viewpoint of its users, the system performs the following functions. Th
 - **FR-09 Rates and Announcements Management:** Lets the administrator view, edit and reset NeoFit's rate table, which all revenue computations use, and post or remove the announcements that members see.
 - **FR-10 Logbook Management:** Lets the administrator view the synchronized logbook entries by date, and add, edit or delete entries.
 - **FR-11 Revenue Analytics and Reports:** Computes and charts revenue from the logbook scans and the member payments, counting each payment once, and exports a Word revenue report.
-- **FR-12 Member Sign-In and Membership Status:** Lets an invited member sign in to the mobile application with an email link, without a password, and see their own plan, expiry date, days left and status, together with NeoFit's rates and announcements. Members cannot pay in the application; they renew at the front desk.
+- **FR-12 Member Sign-In and Membership Status:** Lets an invited member sign in to the mobile application with an email address and password, using a one-time code sent by email to create the password the first time or after forgetting it, lets the member change the password, and shows the member their own plan, expiry date, days left and status, together with NeoFit's rates and announcements. Members cannot pay in the application; they renew at the front desk.
 - **FR-13 Member Payment History and Receipts:** Shows a signed-in member only the payments recorded on their own member record, and gives a receipt for each payment that can be saved as a PDF file or shared.
 - **FR-14 Membership Renewal Reminders:** Sends an invited member a push notification 7, 3 and 1 day before the plan expires, reminding them to renew at the front desk, and shows the same reminder on the member's Home screen.
 
@@ -153,7 +152,7 @@ The users of the system are identified and described as follows:
 - **Staff:** Front-desk personnel who write the logbook and scan it with the mobile application. They are familiar with smartphones but are not technical users, so the scanning flow must take only a few taps.
 - **Owner:** The gym owner, who uses the mobile application to monitor revenue, review uploads and manage staff accounts. The owner can also scan pages.
 - **Administrator:** The person who operates the desktop application at the gym, usually the owner or a trusted staff member. The administrator manages members, rates and logbook entries and views revenue analytics.
-- **Members:** NeoFit members invited by the administrator. They use the member screens of the mobile application, or its web version, to see their own membership, payments and receipts, the rates and the announcements, and they receive renewal reminders. Their experience with smartphones varies, so the member screens show only a few large, read-only items.
+- **Members:** NeoFit members invited by the administrator. They use the member screens of the mobile application to see their own membership, payments and receipts, the rates and the announcements, and they receive renewal reminders. Their experience with smartphones varies, so the member screens show only a few large, read-only items.
 
 Three external systems also act on the system: the **Google Gemini API**, which reads page images; **Supabase Cloud**, which stores records, verifies users and runs the daily reminder check; and the **Expo Push Service**, which delivers the reminders to the members' phones.
 
@@ -173,7 +172,7 @@ A constraint is a limitation that must be respected throughout development and o
 - **Invited members only:** Only members invited by the administrator can sign in to the member screens, and only the records of invited members are copied to the cloud database.
 - **No online payment:** The system records the payments made at the front desk but does not accept payments; members pay and renew only at the front desk.
 - **Data privacy:** The handling of member names and payments must comply with the Data Privacy Act of 2012 (Republic Act No. 10173).
-- **Platforms:** The mobile application must run on Android, and its member screens must also run as a web version in a current web browser; the desktop application must run on Windows.
+- **Platforms:** The mobile application must run on Android, including its member screens; the desktop application must run on Windows.
 - **AI quota:** Online AI scans are limited to five per day, reset at 8:00 AM, to stay within the Gemini API quota.
 
 
@@ -193,8 +192,8 @@ The following assumptions and dependencies apply to the requirements in this doc
 
 - **Logbook practice:** NeoFit continues to record member visits and payments in its paper logbook, with each line holding a name and an amount (“name – amount”).
 - **Legibility:** Entries are handwritten legibly enough for a person to read them.
-- **Devices:** The staff and the owner have Android smartphones with a working camera, and the gym has a Windows computer for the desktop application. Members who use the member screens have an Android phone or a phone with a current web browser.
-- **Member contact:** Members who want access to the member screens give the front desk an email address that they can open on their phone.
+- **Devices:** The staff and the owner have Android smartphones with a working camera, and the gym has a Windows computer for the desktop application. Members who use the member screens have an Android phone.
+- **Member contact:** Every member gives the front desk an email address that they can open on their phone.
 - **Connectivity:** Internet access at the gym is available most of the time; online reading, synchronization and logbook editing on the desktop depend on it.
 - **Third-party services:** The Google Gemini API, Supabase and the Expo Push Service remain available under their current free tiers and terms of use.
 - **Accounts:** Staff and owner accounts are created by the owner in the cloud authentication service, and the owner keeps them up to date. Member accounts are created only through invites from the desktop application.
@@ -218,7 +217,6 @@ The system runs on the staff's and owner's Android phones and on the gym's Windo
 | Device | Minimum Requirement | Used By |
 |---|---|---|
 | Android smartphone | Android 7.0 (API level 24) or later<br>Rear camera with autofocus (staff and owner)<br>3 GB RAM; 1 GB free storage<br>Wi-Fi or mobile data | Staff, Owner, Members |
-| Other smartphone | A current version of Chrome or Safari, for the web version of the member screens | Members |
 | Windows computer | Windows 10 or later, 64-bit<br>Dual-core 2.0 GHz processor; 4 GB RAM<br>500 MB free storage<br>1366 × 768 display | Administrator |
 | Network | Internet access through Wi-Fi or mobile data for online reading, synchronization, the member screens and updates | All users |
 
@@ -231,10 +229,10 @@ The system is built from the software components and services listed below.
 
 | Interface | Technology | Purpose |
 |---|---|---|
-| Mobile application | React Native (Expo), TypeScript | Application for the staff, the owner and members; the member screens also run in a web browser |
+| Mobile application | React Native (Expo), TypeScript | Application for the staff, the owner and members |
 | Online OCR service | Google Gemini API (Gemini 2.5 Flash) over HTTPS | Reads page images and returns entries as JSON |
 | Offline OCR library | Google ML Kit Text Recognition | Reads page images on the phone |
-| Cloud database and authentication | Supabase: PostgreSQL, Auth and Row-Level Security over HTTPS | Stores profiles, uploads, entries and the copies of member records; signs users in, also with email links |
+| Cloud database and authentication | Supabase: PostgreSQL, Auth and Row-Level Security over HTTPS | Stores profiles, uploads, entries and the copies of member records; signs users in with passwords and with one-time email codes |
 | Cloud functions | Supabase Edge Functions, run daily by a schedule (pg_cron) | Send member invites and the daily renewal reminders |
 | Push notifications | Expo Notifications and the Expo Push Service | Deliver renewal reminders to the members' phones |
 | Receipt export | Expo Print and Expo Sharing | Save a receipt as a PDF file and share it |
@@ -271,8 +269,8 @@ Lets each user sign in and see only the features that belong to their role: staf
 | Actors | Staff, Owner, Administrator, Supabase Cloud |
 | Description | Lets each user sign in and see only the features that belong to their role: staff, owner or administrator. |
 | Preconditions | The user has an account. Staff and owner accounts are created in the cloud authentication service; the desktop application has one administrator account. |
-| Main Flow | 1. The user opens the mobile or desktop application.<br>2. The user enters an email address and password.<br>3. The system verifies the credentials.<br>4. The system loads the user's profile and role.<br>5. The system opens the staff screens (Scan, History), the owner screens (Dashboard, Scan, History, Staff, Settings), or the desktop dashboard. |
-| Alternative Flows | 2a. The user is a gym member: the user taps “Sign in with an email link” and continues with UC-12.<br>3a. The credentials are wrong: the system shows an error and stays on the sign-in screen.<br>4a. The staff account is disabled: the system refuses access and signs the user out. |
+| Main Flow | 1. The user opens the desktop application, or opens the mobile application and taps “Staff and owner sign in”.<br>2. The user enters an email address and password.<br>3. The system verifies the credentials.<br>4. The system loads the user's profile and role.<br>5. The system opens the staff screens (Scan, History), the owner screens (Dashboard, Scan, History, Staff, Settings), or the desktop dashboard. |
+| Alternative Flows | 2a. The user is a gym member: the user signs in on the Member Sign In screen and continues with UC-12.<br>3a. The credentials are wrong: the system shows an error and stays on the sign-in screen.<br>4a. The staff account is disabled: the system refuses access and signs the user out. |
 | Postconditions | The user is signed in, and the session is kept on the device until the user signs out. |
 
 *Table 5.0 UC-01 User Authentication and Role-Based Access Description*
@@ -425,8 +423,8 @@ Lets the administrator keep NeoFit's member records and payments on the desktop 
 | Actors | Administrator, Supabase Cloud |
 | Description | Lets the administrator keep NeoFit's member records and payments on the desktop application, and invite members to the member screens of the mobile application. |
 | Preconditions | The administrator is signed in to the desktop application. |
-| Main Flow | 1. The administrator opens the dashboard, which shows member counts, today's logbook entries, revenue, and expired or expiring plans.<br>2. The administrator opens Members and searches by name or ID, or filters by status.<br>3. The administrator adds a member with a name, photo, plan, join date and, if the member wants access to the member screens, an email address, or edits an existing member.<br>4. The system assigns a member ID, records the payment with a receipt number, and computes the status (Active, Expiring Soon, Expired or Pending).<br>5. The administrator renews a membership; the system records the new payment and starts the new period after the current one ends so paid days are kept.<br>6. The administrator opens a member's details and taps Send Invite Link; the system emails the member a link to the member screens. |
-| Alternative Flows | 3a. Required fields are missing: the system does not save and highlights them.<br>5a. The administrator deletes a member: the system asks for confirmation first, and also removes the member's access to the member screens.<br>6a. The member has no email address: the system asks for one before sending the invite.<br>6b. The computer is offline: the system shows a notice, and the administrator sends the invite when the connection returns. |
+| Main Flow | 1. The administrator opens the dashboard, which shows member counts, today's logbook entries, revenue, and expired or expiring plans.<br>2. The administrator opens Members and searches by name or ID, or filters by status.<br>3. The administrator adds a member with a name, email address, plan, join date and, optionally, a contact number and a photo, or edits an existing member.<br>4. The system assigns a member ID, records the payment with a receipt number, and computes the status (Active, Expiring Soon, Expired or Pending).<br>5. The administrator renews a membership; the system records the new payment and starts the new period after the current one ends so paid days are kept.<br>6. The administrator opens a member's details and taps Send Invite; the system emails the member a one-time code for signing in to the member screens. |
+| Alternative Flows | 3a. Required fields are missing: the system does not save and highlights them.<br>3b. Another member already uses the email address: the system does not save and asks for a different address.<br>5a. The administrator deletes a member: the system asks for confirmation first, and also removes the member's access to the member screens.<br>6a. The computer is offline: the system shows a notice, and the administrator sends the invite when the connection returns. |
 | Postconditions | The member records and payments are up to date, and invited members can sign in to the member screens. |
 
 *Table 12.0 UC-08 Member Management Description*
@@ -500,7 +498,7 @@ Gives the administrator NeoFit's revenue from the logbook scans and member payme
 
 ##### 3.2.1.12. (UC-12) Member Sign-In and Membership Status Use Case
 
-Lets an invited member sign in to the mobile application without a password and see their own membership, NeoFit's rates and the gym's announcements. This use case realizes FR-12.
+Lets an invited member sign in to the mobile application with an email address and password, and see their own membership, NeoFit's rates and the gym's announcements. This use case realizes FR-12.
 
 ![Figure 13.0 Member Sign-In and Membership Status Use Case](assets/srs/UC-12.png)
 
@@ -511,10 +509,10 @@ Lets an invited member sign in to the mobile application without a password and 
 | Use Case ID | UC-12 |
 | Use Case Name | Member Sign-In and Membership Status |
 | Actors | Member, Supabase Cloud |
-| Description | Lets an invited member sign in to the mobile application without a password and see their own membership, NeoFit's rates and the gym's announcements. |
+| Description | Lets an invited member sign in to the mobile application with an email address and password, and see their own membership, NeoFit's rates and the gym's announcements. |
 | Preconditions | The administrator has invited the member (UC-08). |
-| Main Flow | 1. The member opens the mobile application, or its web version, and taps “Sign in with an email link”.<br>2. The member enters the email address given to the front desk and taps Email Me a Sign-In Link.<br>3. The system emails a one-time sign-in link to the address.<br>4. The member opens the link, and the system signs the member in.<br>5. The system shows the member's Home screen: the plan, the expiry date, the days left, the status, the last payment and the latest announcement.<br>6. The member opens Rates to see the official rates and all current announcements. |
-| Alternative Flows | 3a. The email address has not been invited: the system sends no link and asks the member to request an invite at the front desk.<br>4a. The link has expired or was already used: the system asks the member to request a new link.<br>5a. The plan expires within seven days or has expired: the Home screen shows the status and asks the member to renew at the front desk. |
+| Main Flow | 1. The member opens the mobile application, which shows the Member Sign In screen.<br>2. The member enters the email address given to the front desk and the password, and taps Sign In.<br>3. The system verifies them and loads the member's own record.<br>4. The system shows the member's Home screen: the plan, the expiry date, the days left, the status, the last payment and the latest announcement.<br>5. The member opens Rates to see the official rates and all current announcements. |
+| Alternative Flows | 2a. The member signs in for the first time or has forgotten the password: the member taps “Get an email code”, enters the email address and taps Send Code; the system emails a one-time code; the member types the code, creates a password of at least 8 characters, and continues with step 4.<br>2b. The member already holds the code from the invite: the member taps “I already have a code” and types it.<br>2c. The email address has not been invited: the system sends no code, and the screen does not say whether an address is invited.<br>2d. The code is wrong or has expired: the system shows an error and the member asks for a new code.<br>3a. The email address or the password is wrong: the system shows one message for both and stays on the sign-in screen.<br>4a. The plan expires within seven days or has expired: the Home screen shows the status and asks the member to renew at the front desk.<br>4b. The member opens Account to change the password: the system saves the new password only after it has verified the current one. |
 | Postconditions | The member is signed in and sees only their own membership. The session stays on the device until the member signs out. |
 
 *Table 16.0 UC-12 Member Sign-In and Membership Status Description*
@@ -558,7 +556,7 @@ Reminds invited members to renew at the front desk before their plans expire. Th
 | Description | Reminds invited members to renew at the front desk before their plans expire. |
 | Preconditions | The member has signed in to the Android application (UC-12), and the plan has an expiry date. |
 | Main Flow | 1. After the member signs in, the system asks for permission to show notifications, and the member allows it.<br>2. The system registers the phone for push notifications on the member's record.<br>3. Every day at 8:00 AM, the system finds the invited members whose plans expire in exactly 7, 3 or 1 days.<br>4. The system sends each of them a push notification with the expiry date and a reminder to renew at the front desk.<br>5. The member taps the notification, and the system opens the member's Home screen. |
-| Alternative Flows | 1a. The member does not allow notifications, or uses the web version: no push notification is sent, and the Home screen shows the same reminder while the plan expires within seven days.<br>3a. The member has already renewed: the new expiry date is used, so no reminder is sent for the old one.<br>4a. A reminder was already sent to the member today: the system does not send it again. |
+| Alternative Flows | 1a. The member does not allow notifications: no push notification is sent, and the Home screen shows the same reminder while the plan expires within seven days.<br>3a. The member has already renewed: the new expiry date is used, so no reminder is sent for the old one.<br>4a. A reminder was already sent to the member today: the system does not send it again. |
 | Postconditions | The member knows when the plan expires and can renew at the front desk on time. |
 
 *Table 18.0 UC-14 Membership Renewal Reminders Description*
@@ -571,7 +569,7 @@ The prototype screens below are the interface designs of the system, shown with 
 
 ##### 3.2.2.1. (PR-01) User Authentication and Role-Based Access Prototype
 
-The sign-in screen, with the link for members, and the owner's Settings screen, where the password and profile are changed.
+The staff and owner sign-in screen, with the way back to the member sign-in, and the owner's Settings screen, where the password and profile are changed.
 
 ![Figure 16.0 User Authentication and Role-Based Access Prototype](assets/srs/PR-01.png)
 
@@ -674,29 +672,33 @@ Revenue analytics with the monthly total, the daily chart and the breakdowns.
 
 ##### 3.2.2.12. (PR-12) Member Sign-In and Membership Status Prototype
 
-The member sign-in screen with the email link, the member's Home screen with the membership status, and the rates and announcements.
+The member sign-in screen, the email code and create password screens, the member's Home screen with the membership status, the Account screen where the password is changed, and the rates and announcements.
 
 ![Figure 28.0 Member Sign-In and Membership Status Prototype](assets/srs/PR-12.png)
 
 *Figure 28.0 Member Sign-In and Membership Status Prototype*
+
+![Figure 29.0 Member Sign-In and Membership Status Prototype (continued)](assets/srs/PR-12-2.png)
+
+*Figure 29.0 Member Sign-In and Membership Status Prototype (continued)*
 
 
 ##### 3.2.2.13. (PR-13) Member Payment History and Receipts Prototype
 
 The member's payment history and the receipt of one payment.
 
-![Figure 29.0 Member Payment History and Receipts Prototype](assets/srs/PR-13.png)
+![Figure 30.0 Member Payment History and Receipts Prototype](assets/srs/PR-13.png)
 
-*Figure 29.0 Member Payment History and Receipts Prototype*
+*Figure 30.0 Member Payment History and Receipts Prototype*
 
 
 ##### 3.2.2.14. (PR-14) Membership Renewal Reminders Prototype
 
 Renewal reminders on the member's phone, received 7 and 3 days before the plan expires.
 
-![Figure 30.0 Membership Renewal Reminders Prototype](assets/srs/PR-14.png)
+![Figure 31.0 Membership Renewal Reminders Prototype](assets/srs/PR-14.png)
 
-*Figure 30.0 Membership Renewal Reminders Prototype*
+*Figure 31.0 Membership Renewal Reminders Prototype*
 
 
 ### 3.3. Performance Requirements
@@ -741,7 +743,7 @@ The mobile application shall be written in TypeScript with React Native and Expo
 
 #### 3.4.2. Graphical-User Interface
 
-The mobile interface shall use a dark theme with a high-contrast mint accent, large touch targets, and bottom tabs that depend on the role: Scan and History for the staff; Dashboard, Scan, History, Staff and Settings for the owner; and Home, Payments and Rates for members. The desktop interface shall use a sidebar with Dashboard, Members, Rates, Revenue and Logbook, and shall offer light and dark modes. Amounts shall be shown in Philippine pesos and dates in the Philippine format. Screens shall be designed in Figma and kept consistent with the prototypes in Section 3.2.2.
+The mobile interface shall use a dark theme with a high-contrast mint accent, large touch targets, and bottom tabs that depend on the role: Scan and History for the staff; Dashboard, Scan, History, Staff and Settings for the owner; and Home, Payments, Rates and Account for members. The desktop interface shall use a sidebar with Dashboard, Members, Rates, Revenue and Logbook, and shall offer light and dark modes. Amounts shall be shown in Philippine pesos and dates in the Philippine format. Screens shall be designed in Figma and kept consistent with the prototypes in Section 3.2.2.
 
 
 ### 3.5. Software System Attributes
@@ -761,7 +763,7 @@ Scanning shall remain available when the internet connection or the Gemini API i
 
 #### 3.5.3. Security
 
-Every user shall sign in before using the system, and each role shall reach only its own functions. Row-level security in the cloud database shall ensure that a staff account can only create uploads under its own identity, and a disabled staff account shall not be able to sign in. All traffic between the applications and the cloud services shall be encrypted with HTTPS. The desktop application shall store passwords only as hashes, expire sessions after 24 hours, and accept API requests only from the same computer. Service keys and passwords shall be kept in configuration files outside the source code. Member accounts shall be created only by invitation from the desktop application, and sign-up without an invitation shall be disabled. Row-level security shall let a member read only their own membership and payments; members shall have no access to the logbook, the uploads, the staff profiles or the records of other members. Only the records of invited members shall be copied to the cloud database. Member information shall be collected and used only for the purposes of the system, in line with the Data Privacy Act of 2012.
+Every user shall sign in before using the system, and each role shall reach only its own functions. Row-level security in the cloud database shall ensure that a staff account can only create uploads under its own identity, and a disabled staff account shall not be able to sign in. All traffic between the applications and the cloud services shall be encrypted with HTTPS. The desktop application shall store passwords only as hashes, expire sessions after 24 hours, and accept API requests only from the same computer. Service keys and passwords shall be kept in configuration files outside the source code. Member accounts shall be created only by invitation from the desktop application, and sign-up without an invitation shall be disabled. A member’s password shall have at least 8 characters, and the current password shall be required to change it. An email code shall work only once and expire after one hour, a member who signs in with a code shall create a new password before reaching the member screens, and the messages of the sign-in screens shall not state whether an email address belongs to a member. No two members shall share an email address. Row-level security shall let a member read only their own membership and payments; members shall have no access to the logbook, the uploads, the staff profiles or the records of other members. Only the records of invited members shall be copied to the cloud database. Member information shall be collected and used only for the purposes of the system, in line with the Data Privacy Act of 2012.
 
 
 #### 3.5.4. Maintainability
@@ -771,5 +773,5 @@ The code shall be organized into separate screens, services and data-access modu
 
 #### 3.5.5. Portability
 
-The mobile application shall run on Android 7.0 or later, and its member screens shall also run as a web version in current browsers; because it is built with React Native and Expo, it can be built for iOS in the future without a rewrite. The desktop application shall run on Windows 10 or later. Records shall be stored in standard PostgreSQL and SQLite databases and can be exported as CSV and Word files, so the data is not locked into the application.
+The mobile application shall run on Android 7.0 or later, including its member screens; because it is built with React Native and Expo, it can be built for iOS in the future without a rewrite. The desktop application shall run on Windows 10 or later. Records shall be stored in standard PostgreSQL and SQLite databases and can be exported as CSV and Word files, so the data is not locked into the application.
 

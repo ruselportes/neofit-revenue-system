@@ -18,10 +18,10 @@ USECASES = [
         "include": [("Sign In", "Load Role-Based Screens")],
         "desc": "Lets each user sign in and see only the features that belong to their role: staff, owner or administrator.",
         "pre": "The user has an account. Staff and owner accounts are created in the cloud authentication service; the desktop application has one administrator account.",
-        "flow": ["The user opens the mobile or desktop application.", "The user enters an email address and password.",
+        "flow": ["The user opens the desktop application, or opens the mobile application and taps “Staff and owner sign in”.", "The user enters an email address and password.",
                  "The system verifies the credentials.", "The system loads the user's profile and role.",
                  "The system opens the staff screens (Scan, History), the owner screens (Dashboard, Scan, History, Staff, Settings), or the desktop dashboard."],
-        "alt": ["2a. The user is a gym member: the user taps “Sign in with an email link” and continues with UC-12.",
+        "alt": ["2a. The user is a gym member: the user signs in on the Member Sign In screen and continues with UC-12.",
                 "3a. The credentials are wrong: the system shows an error and stays on the sign-in screen.",
                 "4a. The staff account is disabled: the system refuses access and signs the user out."],
         "post": "The user is signed in, and the session is kept on the device until the user signs out.",
@@ -129,14 +129,14 @@ USECASES = [
         "pre": "The administrator is signed in to the desktop application.",
         "flow": ["The administrator opens the dashboard, which shows member counts, today's logbook entries, revenue, and expired or expiring plans.",
                  "The administrator opens Members and searches by name or ID, or filters by status.",
-                 "The administrator adds a member with a name, photo, plan, join date and, if the member wants access to the member screens, an email address, or edits an existing member.",
+                 "The administrator adds a member with a name, email address, plan, join date and, optionally, a contact number and a photo, or edits an existing member.",
                  "The system assigns a member ID, records the payment with a receipt number, and computes the status (Active, Expiring Soon, Expired or Pending).",
                  "The administrator renews a membership; the system records the new payment and starts the new period after the current one ends so paid days are kept.",
-                 "The administrator opens a member's details and taps Send Invite Link; the system emails the member a link to the member screens."],
+                 "The administrator opens a member's details and taps Send Invite; the system emails the member a one-time code for signing in to the member screens."],
         "alt": ["3a. Required fields are missing: the system does not save and highlights them.",
+                "3b. Another member already uses the email address: the system does not save and asks for a different address.",
                 "5a. The administrator deletes a member: the system asks for confirmation first, and also removes the member's access to the member screens.",
-                "6a. The member has no email address: the system asks for one before sending the invite.",
-                "6b. The computer is offline: the system shows a notice, and the administrator sends the invite when the connection returns."],
+                "6a. The computer is offline: the system shows a notice, and the administrator sends the invite when the connection returns."],
         "post": "The member records and payments are up to date, and invited members can sign in to the member screens.",
     },
     {
@@ -189,20 +189,23 @@ USECASES = [
     {
         "id": "UC-12", "name": "Member Sign-In and Membership Status", "fr": "FR-12", "pr": "PR-12",
         "left": [MEMBER], "right": [CLOUD],
-        "a": ["Sign In with Email Link", "View My Membership", "View Rates and Announcements", "Sign Out"], "b": ["Load Own Member Record"],
-        "links": {MEMBER: ["Sign In with Email Link", "View My Membership", "View Rates and Announcements", "Sign Out"], CLOUD: ["Load Own Member Record"]},
+        "a": ["Sign In with Email and Password", "Get Email Code", "Create Password", "Change Password", "View My Membership", "View Rates and Announcements", "Sign Out"], "b": ["Load Own Member Record"],
+        "links": {MEMBER: ["Sign In with Email and Password", "Get Email Code", "Create Password", "Change Password", "View My Membership", "View Rates and Announcements", "Sign Out"], CLOUD: ["Load Own Member Record"]},
         "include": [("View My Membership", "Load Own Member Record")],
-        "desc": "Lets an invited member sign in to the mobile application without a password and see their own membership, NeoFit's rates and the gym's announcements.",
+        "desc": "Lets an invited member sign in to the mobile application with an email address and password, and see their own membership, NeoFit's rates and the gym's announcements.",
         "pre": "The administrator has invited the member (UC-08).",
-        "flow": ["The member opens the mobile application, or its web version, and taps “Sign in with an email link”.",
-                 "The member enters the email address given to the front desk and taps Email Me a Sign-In Link.",
-                 "The system emails a one-time sign-in link to the address.",
-                 "The member opens the link, and the system signs the member in.",
+        "flow": ["The member opens the mobile application, which shows the Member Sign In screen.",
+                 "The member enters the email address given to the front desk and the password, and taps Sign In.",
+                 "The system verifies them and loads the member's own record.",
                  "The system shows the member's Home screen: the plan, the expiry date, the days left, the status, the last payment and the latest announcement.",
                  "The member opens Rates to see the official rates and all current announcements."],
-        "alt": ["3a. The email address has not been invited: the system sends no link and asks the member to request an invite at the front desk.",
-                "4a. The link has expired or was already used: the system asks the member to request a new link.",
-                "5a. The plan expires within seven days or has expired: the Home screen shows the status and asks the member to renew at the front desk."],
+        "alt": ["2a. The member signs in for the first time or has forgotten the password: the member taps “Get an email code”, enters the email address and taps Send Code; the system emails a one-time code; the member types the code, creates a password of at least 8 characters, and continues with step 4.",
+                "2b. The member already holds the code from the invite: the member taps “I already have a code” and types it.",
+                "2c. The email address has not been invited: the system sends no code, and the screen does not say whether an address is invited.",
+                "2d. The code is wrong or has expired: the system shows an error and the member asks for a new code.",
+                "3a. The email address or the password is wrong: the system shows one message for both and stays on the sign-in screen.",
+                "4a. The plan expires within seven days or has expired: the Home screen shows the status and asks the member to renew at the front desk.",
+                "4b. The member opens Account to change the password: the system saves the new password only after it has verified the current one."],
         "post": "The member is signed in and sees only their own membership. The session stays on the device until the member signs out.",
     },
     {
@@ -235,7 +238,7 @@ USECASES = [
                  "Every day at 8:00 AM, the system finds the invited members whose plans expire in exactly 7, 3 or 1 days.",
                  "The system sends each of them a push notification with the expiry date and a reminder to renew at the front desk.",
                  "The member taps the notification, and the system opens the member's Home screen."],
-        "alt": ["1a. The member does not allow notifications, or uses the web version: no push notification is sent, and the Home screen shows the same reminder while the plan expires within seven days.",
+        "alt": ["1a. The member does not allow notifications: no push notification is sent, and the Home screen shows the same reminder while the plan expires within seven days.",
                 "3a. The member has already renewed: the new expiry date is used, so no reminder is sent for the old one.",
                 "4a. A reminder was already sent to the member today: the system does not send it again."],
         "post": "The member knows when the plan expires and can renew at the front desk on time.",
@@ -243,7 +246,7 @@ USECASES = [
 ]
 
 PROTOTYPES = {
-    "PR-01": (["m-login", "m-settings"], "The sign-in screen, with the link for members, and the owner's Settings screen, where the password and profile are changed."),
+    "PR-01": (["m-login", "m-settings"], "The staff and owner sign-in screen, with the way back to the member sign-in, and the owner's Settings screen, where the password and profile are changed."),
     "PR-02": (["m-camera"], "The capture screen with the frame guide, the log date selector and the daily AI scan counter."),
     "PR-03": (["m-processing", "m-review-offline"], "The processing screen, and the review screen after an offline read by ML Kit, with a warning and duplicate flags."),
     "PR-04": (["m-review", "m-success"], "The review screen with a flagged amount, and the confirmation shown after the page is saved."),
@@ -254,16 +257,15 @@ PROTOTYPES = {
     "PR-09": (["d-rates"], "The editable official rate table and the announcements for members."),
     "PR-10": (["d-logbook"], "The logbook view with the calendar of days that have entries and the entries of one day."),
     "PR-11": (["d-revenue"], "Revenue analytics with the monthly total, the daily chart and the breakdowns."),
-    "PR-12": (["m-member-login", "m-member-home", "m-member-rates"], "The member sign-in screen with the email link, the member's Home screen with the membership status, and the rates and announcements."),
+    "PR-12": (["m-member-login", "m-member-code", "m-member-password", "m-member-home", "m-member-account", "m-member-rates"], "The member sign-in screen, the email code and create password screens, the member's Home screen with the membership status, the Account screen where the password is changed, and the rates and announcements."),
     "PR-13": (["m-member-payments", "m-member-receipt"], "The member's payment history and the receipt of one payment."),
     "PR-14": (["m-member-reminder"], "Renewal reminders on the member's phone, received 7 and 3 days before the plan expires."),
 }
 
 
 def prototype_parts(pr, names):
-    """Figure keys and screens of one prototype: phones go side by side in one figure; desktop
-    screens are stacked two per figure, so a third screen goes to a second figure (PR-08-2)."""
-    if names[0].startswith("m-"):
-        return [(pr, names)]
-    chunks = [names[i:i + 2] for i in range(0, len(names), 2)]
+    """Figure keys and screens of one prototype: phones go side by side, up to three per figure; desktop
+    screens are stacked two per figure. Screens that do not fit go to a second figure (PR-08-2)."""
+    size = 3 if names[0].startswith("m-") else 2
+    chunks = [names[i:i + size] for i in range(0, len(names), size)]
     return [(pr if k == 0 else f"{pr}-{k + 1}", ch) for k, ch in enumerate(chunks)]
